@@ -4351,7 +4351,7 @@ static String buildStateJson() {
   const bool safe = !g_unsafe && safetyInputsUsable();
   j += "{";
   j += "\"fw\":"; j += jsonQuote(FW_VERSION);
-  j += ",\"build\":\"ALPACA-PWM-20261109\"";
+  j += ",\"build\":\"ALPACA-PWM-20261109-R2\"";
   j += ",\"safe\":"; j += (safe ? "true" : "false");
   const String reasonNow=roofState==RoofState::ERROR ? ("BLAD DACHU: "+g_roofMotionFault) :
       g_mountEstop ? ("E-STOP MONTAZU: "+g_mountEstopReason) :
@@ -5760,18 +5760,18 @@ static void handleClientImpl(Client &c,const astro_http::Request& request,const 
     }
     else if (member == "refresh" && method == "PUT") { alpacaSendValue(c, cid, "null"); }
     else if (member == "focustemperatures" && method == "GET") { alpacaSendValue(c, cid, focuserTemperaturesJson()); }
-    else if (member == "temperature" && method == "GET")    { alpacaSendValue(c, cid, jsonNumOrNull(g_tAir, 2)); }
-    else if (member == "humidity" && method == "GET")       { alpacaSendValue(c, cid, jsonNumOrNull(g_hAir, 1)); }
-    else if (member == "dewpoint" && method == "GET")       { alpacaSendValue(c, cid, jsonNumOrNull(g_dewPoint, 2)); }
-    else if (member == "skytemperature" && method == "GET") { alpacaSendValue(c, cid, jsonNumOrNull(g_tempSky, 2)); }
+    else if (member == "temperature" && method == "GET")    { alpacaSendMeasurement(c, cid, g_tAir, 2); }
+    else if (member == "humidity" && method == "GET")       { alpacaSendMeasurement(c, cid, g_hAir, 1); }
+    else if (member == "dewpoint" && method == "GET")       { alpacaSendMeasurement(c, cid, g_dewPoint, 2); }
+    else if (member == "skytemperature" && method == "GET") { alpacaSendMeasurement(c, cid, g_tempSky, 2); }
     else if (member == "cloudcover" && method == "GET") {
       float cc = isnan(g_cloudDelta) ? NAN :
                  (g_cloudDelta >= CLOUD_DELTA_CLEAR ? 0.0f :
                   g_cloudDelta <= 0.0f ? 100.0f :
                   (1.0f - (g_cloudDelta / CLOUD_DELTA_CLEAR)) * 100.0f);
-      alpacaSendValue(c, cid, jsonNumOrNull(cc, 1));
+      alpacaSendMeasurement(c, cid, cc, 1);
     }
-    else if (member == "pressure" && method == "GET")  { alpacaSendValue(c, cid, jsonNumOrNull(g_pressure_hPa, 1)); }
+    else if (member == "pressure" && method == "GET")  { alpacaSendMeasurement(c, cid, g_pressure_hPa, 1); }
     else if (member == "windspeed" && method == "GET") { alpacaSendMeasurement(c, cid, windMeasurementUsable()?g_wind_ms:NAN, 2); }
     else if (member == "winddirection" && method == "GET") { alpacaSendValue(c, cid, "0"); }
     else if (member == "windgust" && method == "GET")  { alpacaSendMeasurement(c, cid, windMeasurementUsable()?g_windGust:NAN, 2); }
@@ -5970,6 +5970,8 @@ Serial.begin(115200);
   // przyczyny nocnych restartow (crash/brownout/WDT/panic).
   esp_reset_reason_t rr = esp_reset_reason();
   const char* rrTxt = "NIEZNANY";
+  char rrBuf[56];
+  bool rrOther = false;   // np. reset po wgraniu przez USB/JTAG - nie jest awaria
   switch (rr) {
     case ESP_RST_POWERON:   rrTxt = "Power-on (normalne wlaczenie zasilania)"; break;
     case ESP_RST_EXT:       rrTxt = "Reset zewnetrzny (przycisk RESET)"; break;
@@ -5980,14 +5982,16 @@ Serial.begin(115200);
     case ESP_RST_WDT:       rrTxt = "!!! Inny watchdog (hw/rtc) !!!"; break;
     case ESP_RST_BROWNOUT:  rrTxt = "!!! BROWNOUT - spadek napiecia zasilania !!!"; break;
     case ESP_RST_DEEPSLEEP: rrTxt = "Wybudzenie z deep sleep"; break;
-    default: break;
+    default:
+      snprintf(rrBuf, sizeof(rrBuf), "Inna przyczyna resetu (kod %d)", (int)rr);
+      rrTxt = rrBuf; rrOther = true; break;
   }
   if(breadcrumbValid(g_previousBreadcrumb) && rr!=ESP_RST_POWERON && rr!=ESP_RST_BROWNOUT) {
     eventLogEx("WARN","BOOT","Previous execution: stage=%lu endpoint=%lu millis=%lu (not a backtrace)",
       (unsigned long)g_previousBreadcrumb.stage,(unsigned long)g_previousBreadcrumb.endpoint,(unsigned long)g_previousBreadcrumb.at);
   }
   Serial.print(F(">>> POWOD RESTARTU: ")); Serial.println(rrTxt);
-  eventLogEx((rr == ESP_RST_POWERON || rr == ESP_RST_EXT) ? "INFO" : "CRITICAL",
+  eventLogEx((rr == ESP_RST_POWERON || rr == ESP_RST_EXT) ? "INFO" : rrOther ? "WARN" : "CRITICAL",
              "BOOT", "RESET: %s", rrTxt);
   Serial.printf(">>> Wolny heap na starcie: %u bytes (min ever: %u)\n",
                 ESP.getFreeHeap(), ESP.getMinFreeHeap());

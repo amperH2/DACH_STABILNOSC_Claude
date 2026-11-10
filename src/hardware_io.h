@@ -181,22 +181,44 @@ extern float g_ledDutyPct;
 extern float g_ledBrightPct;
 extern bool g_ledPwmOn;
 
+static uint32_t g_pwmRetryRecovered = 0;   // ile zapisow PWM udalo sie dopiero po ponowieniu
+static uint32_t g_pwmRetryLastLogMs = 0;
+
 static bool heaterPwmWriteChannel(uint8_t channel, float dutyPct) {
 #if PWM_MODULE_ENABLED
   if (channel < 1 || channel > 4 || !isfinite(dutyPct)) return false;
   dutyPct = constrain(dutyPct, 0.0f, 100.0f);
   const auto frame=astro_modbus::pwmFrame((uint8_t)HEATER_PWM_ADDR,channel,HEATER_PWM_FREQ_CENTIHZ,(uint16_t)lroundf(dutyPct*100.0f));
   uint8_t resp[16]; size_t n = 0;
-  const bool ok = modbusRelayTransaction(frame.data(), frame.size(), resp, sizeof(resp), &n);
+  // Pojedynczy zgubiony/uszkodzony odczyt nie oznacza awarii modulu. Zapis PWM jest idempotentny
+  // (absolutna czestotliwosc + wypelnienie), wiec gdy modul jest online ponawiamy do 3 razy.
+  // Gdy modul jest juz offline (sweep OFF) tylko 1 proba - bez kolejnych timeoutow w loop().
+  const uint8_t maxAttempts = g_heaterPwmOnline ? 3 : 1;
+  bool ok = false; uint8_t attempt = 0;
+  while (attempt < maxAttempts && !ok) {
+    if (attempt > 0) delay(20);
+    n = 0;
+    ok = modbusRelayTransaction(frame.data(), frame.size(), resp, sizeof(resp), &n);
+    ++attempt;
+  }
+  if (ok && attempt > 1) {
+    ++g_pwmRetryRecovered;
+    const uint32_t nowMs = millis();
+    if (g_pwmRetryLastLogMs == 0 || nowMs - g_pwmRetryLastLogMs >= 300000UL) {
+      g_pwmRetryLastLogMs = nowMs ? nowMs : 1;
+      eventLogEx("INFO", "HEATERS", "PWM @%u CH%u: odpowiedz dopiero w probie %u (lacznie odzyskanych: %lu)",
+                 (unsigned)HEATER_PWM_ADDR, (unsigned)channel, (unsigned)attempt, (unsigned long)g_pwmRetryRecovered);
+    }
+  }
   if (!ok && g_heaterPwmOnline) {
     g_heaterLastProbeMs = 0; // request an immediate OFF sweep after a confirmed communication failure
     const bool validCrc = n >= 5 && modbusCRC16(resp, n - 2) == (uint16_t)(resp[n - 2] | (resp[n - 1] << 8));
     const bool exception = n == 5 && validCrc && resp[0] == HEATER_PWM_ADDR && resp[1] == 0x90;
     const char* detail = n == 0 ? "no reply" : exception ? "Modbus exception" :
                          n != 8 ? "invalid frame length" : !validCrc ? "CRC mismatch" : "unexpected reply";
-    eventLogEx("WARN", "HEATERS", "PWM @%u CH%u: %s (bytes=%u, exception=0x%02X)",
+    eventLogEx("WARN", "HEATERS", "PWM @%u CH%u: %s (bytes=%u, exception=0x%02X, proby=%u)",
                (unsigned)HEATER_PWM_ADDR, (unsigned)channel, detail, (unsigned)n,
-               exception ? (unsigned)resp[2] : 0U);
+               exception ? (unsigned)resp[2] : 0U, (unsigned)attempt);
   }
   return ok;
 #else

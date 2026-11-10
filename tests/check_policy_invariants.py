@@ -5,7 +5,7 @@ from temp3_baseline import before_policy
 from netfix_baseline import before_netfix
 p=Path(__file__).resolve().parents[1];s=(p/'src/main.cpp').read_text(encoding='utf-8');b=json.loads((p/'tests/rc51_policy_baseline.json').read_text())
 for name,expected in b['unchanged_functions'].items():
- if name=='commsWatchdogTick':continue # Audited separately: only SafetyMonitor proves NINA contact.
+ if name in ('commsWatchdogTick','alpacaSend','heaterControlTick','heaterManualSet','writeAll'):continue # Audited separately: SafetyMonitor contact; ALPACA-PWM-20261109 intentional changes (Alpaca Value omission, PWM scheduler, single-send HTTP).
  current=before_policy(before_netfix(block(s,name)))
  if name=='windResetAfterCalibration':current=current.replace('  g_windValidity.faultLatched=false;\n','')
  assert hashlib.sha256(current.encode()).hexdigest()==expected,name

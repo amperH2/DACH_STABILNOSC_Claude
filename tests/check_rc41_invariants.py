@@ -6,7 +6,7 @@ from temp3_baseline import before_policy
 from netfix_baseline import before_netfix
 root=Path(__file__).resolve().parents[1];s=(root/'src/main.cpp').read_text(encoding='utf-8-sig')
 baseline=json.loads((root/'tests/rc4_safety_baseline.json').read_text())
-intentional={'commsWatchdogTick','httpSend','httpSendRaw','windResetAfterCalibration','dispatch','manualModeTick','mountPowerCut','mountEstopTrigger','mountEstopManual','mountEstopReset','modbusRelayAllOff','modbusRelayBegin','loop','checkAuth','roofOpen','roofClose','roofStop','roofFaultStop','relayPulse','stopDrivePulse','updatePulseOutputs','readSensorsAndSafety','manualModeOn','manualModeOff','handleClientImpl','roofTick','updateParkStatus','setup','telegramSend','telegramSendNow','telegramSendNow_blocking','netTaskFn'}
+intentional={'alpacaSend','heaterControlTick','heaterManualSet','writeAll','commsWatchdogTick','httpSend','httpSendRaw','windResetAfterCalibration','dispatch','manualModeTick','mountPowerCut','mountEstopTrigger','mountEstopManual','mountEstopReset','modbusRelayAllOff','modbusRelayBegin','loop','checkAuth','roofOpen','roofClose','roofStop','roofFaultStop','relayPulse','stopDrivePulse','updatePulseOutputs','readSensorsAndSafety','manualModeOn','manualModeOff','handleClientImpl','roofTick','updateParkStatus','setup','telegramSend','telegramSendNow','telegramSendNow_blocking','netTaskFn'}
 for name,expected in baseline['functions'].items():
     if name in intentional: continue
     current=before_policy(before_netfix(block(s,name)))

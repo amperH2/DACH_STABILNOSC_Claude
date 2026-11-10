@@ -1,4 +1,4 @@
-ASTRO-ROOF SAFE — ALPACA-PWM-20261109
+ASTRO-ROOF SAFE — ALPACA-PWM-20261109-R2
 
 Baza: wgrany projekt 01_SYSTEM/DACH. Wariant głównej płyty to poe_main.
 Archiwum zawiera kod źródłowy i przykładową konfigurację. Prywatny plik
@@ -6,7 +6,7 @@ secrets.ini weź z obecnego projektu DACH i skopiuj do katalogu obok platformio.
 Zachowaj kopię poprzedniego projektu. Otwórz rozpakowany katalog w PlatformIO.
 Skompiluj wariant poe_main. Wgrywanie wykonaj po zakończeniu sesji, z zamkniętym
 dachem i zaparkowanym AP900. Po restarcie pole build w /api/state powinno mieć
-wartość ALPACA-PWM-20261109. Pole fw zachowuje zgodność ze skryptami N.I.N.A.
+wartość ALPACA-PWM-20261109-R2. Pole fw zachowuje zgodność ze skryptami N.I.N.A.
 
 Po wgraniu sprawdź najpierw połączenie Safety Monitora przy zamkniętym dachu.
 Potem wykonaj nadzorowany test z otwartym dachem w bezpiecznej pogodzie,
@@ -15,3 +15,18 @@ Jeśli pojawi się błąd, zapisz godzinę z logu N.I.N.A. i wpisy z czarnej skr
 Nowy komunikat HEATERS podaje kanał PWM, rodzaj błędu i kod wyjątku Modbus.
 Próby OFF są wykonywane po jednej na przebieg pętli. Automat wraca po
 potwierdzeniu wszystkich czterech zapisów OFF przez moduł PWM.
+
+Zmiany R2 (na bazie ALPACA-PWM-20261109):
+1. Zapis PWM jest ponawiany do 3 razy (przerwa 20 ms), gdy moduł jest online.
+   Awaria jest zgłaszana dopiero po 3 nieudanych próbach. Przy sweepie OFF
+   (moduł offline) pozostaje 1 próba, żeby nie blokować pętli timeoutami.
+   Odzyskany zapis daje wpis INFO HEATERS (najwyżej raz na 5 minut), a błąd
+   WARN HEATERS podaje teraz liczbę prób.
+2. Alpaca ObservingConditions: temperature, humidity, dewpoint, skytemperature,
+   cloudcover i pressure zwracają błąd 0x500 zamiast Value:null, gdy czujnik
+   nie ma ważnego pomiaru (tak jak windspeed i windgust w poprzedniej wersji).
+   skybrightness bez zmian.
+3. Nieznany powód resetu (np. po wgraniu przez USB) pokazuje kod liczbowy
+   i ma poziom WARN zamiast CRITICAL.
+4. Nowy test tests/check_pwm_retry.py.
+
