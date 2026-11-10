@@ -1,0 +1,3 @@
+UnifrakturMaguntia Book, SIL OFL.
+https://github.com/google/fonts/tree/main/ofl/unifrakturmaguntia
+Locally embedded WOFF2 subset for title. Original download SHA256: d64afc0547059dd2e4a78da48bda0aba0a9901be58c7f8c201a8b2b6b4492cc8

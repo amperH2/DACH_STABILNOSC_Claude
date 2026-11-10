@@ -435,10 +435,11 @@ static void write_data(uint8_t s, uint16_t data_offset, const uint8_t *data, uin
  * @brief	This function used to send the data in TCP mode
  * @return	1 for success else 0.
  */
-uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
+uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t *buf, uint16_t len, uint32_t budgetMs)
 {
-	ASTRO_ETH_RETURN(0);
 	const uint32_t sendStarted=millis();
+	ASTRO_ETH_RETURN(0);
+	const uint32_t txBudgetMs = budgetMs < 250 ? budgetMs : 250;
 	uint8_t status=0;
 	uint16_t ret=0;
 	uint16_t freesize=0;
@@ -455,10 +456,9 @@ uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
 		freesize = getSnTX_FSR(s);
 		status = W5100.readSnSR(s);
 		SPI.endTransaction();
-        if (uint32_t(millis()-sendStarted)>=250) { astroEthTimeout(); return 0; }
+        if (uint32_t(millis()-sendStarted)>=txBudgetMs) { astroEthTimeout(); return 0; }
 		if ((status != SnSR::ESTABLISHED) && (status != SnSR::CLOSE_WAIT)) {
-			ret = 0;
-			break;
+			return 0;
 		}
         if(freesize < ret) {
             astroGuard.release();
@@ -473,8 +473,14 @@ uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
 	W5100.execCmdSn(s, Sock_SEND);
 
 	/* +2008.01 bj */
-	while ( (W5100.readSnIR(s) & SnIR::SEND_OK) != SnIR::SEND_OK ) {
-        if(uint32_t(millis()-sendStarted)>=2000) { SPI.endTransaction(); astroEthTimeout(); return 0; }
+	uint8_t irq = 0;
+	while (((irq = W5100.readSnIR(s)) & SnIR::SEND_OK) == 0) {
+        if ((irq & SnIR::TIMEOUT) || uint32_t(millis()-sendStarted)>=budgetMs) {
+            if (irq & SnIR::TIMEOUT) W5100.writeSnIR(s, SnIR::TIMEOUT);
+            SPI.endTransaction();
+            astroEthTimeout();
+            return 0;
+        }
 		/* m2008.01 [bj] : reduce code */
 		if ( W5100.readSnSR(s) == SnSR::CLOSED ) {
 			SPI.endTransaction();

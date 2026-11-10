@@ -89,6 +89,20 @@ size_t EthernetClient::write(const uint8_t *buf, size_t size)
     return sent; // report actual bytes, including a partial TCP write
 }
 
+size_t EthernetClient::writeHttp(const uint8_t *buf, size_t size)
+{
+    if (_sockindex >= MAX_SOCK_NUM || size == 0) return 0;
+    const size_t sent = Ethernet.socketSend(_sockindex, buf, size, 250);
+    if (sent == 0) {
+        // SEND may already have queued these bytes. Abandon this connection
+        // instead of submitting the same bytes twice or waiting on this peer.
+        Ethernet.socketClose(_sockindex);
+        _sockindex = MAX_SOCK_NUM;
+        setWriteError();
+    }
+    return sent;
+}
+
 int EthernetClient::available()
 {
 	if (_sockindex >= MAX_SOCK_NUM) return 0;

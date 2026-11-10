@@ -1,0 +1,17 @@
+ASTRO-ROOF SAFE — ALPACA-PWM-20261109
+
+Baza: wgrany projekt 01_SYSTEM/DACH. Wariant głównej płyty to poe_main.
+Archiwum zawiera kod źródłowy i przykładową konfigurację. Prywatny plik
+secrets.ini weź z obecnego projektu DACH i skopiuj do katalogu obok platformio.ini.
+Zachowaj kopię poprzedniego projektu. Otwórz rozpakowany katalog w PlatformIO.
+Skompiluj wariant poe_main. Wgrywanie wykonaj po zakończeniu sesji, z zamkniętym
+dachem i zaparkowanym AP900. Po restarcie pole build w /api/state powinno mieć
+wartość ALPACA-PWM-20261109. Pole fw zachowuje zgodność ze skryptami N.I.N.A.
+
+Po wgraniu sprawdź najpierw połączenie Safety Monitora przy zamkniętym dachu.
+Potem wykonaj nadzorowany test z otwartym dachem w bezpiecznej pogodzie,
+z podłączoną kopułą i odczytem temperatury fokusera jak w zwykłym sekwencerze.
+Jeśli pojawi się błąd, zapisz godzinę z logu N.I.N.A. i wpisy z czarnej skrzynki.
+Nowy komunikat HEATERS podaje kanał PWM, rodzaj błędu i kod wyjątku Modbus.
+Próby OFF są wykonywane po jednej na przebieg pętli. Automat wraca po
+potwierdzeniu wszystkich czterech zapisów OFF przez moduł PWM.

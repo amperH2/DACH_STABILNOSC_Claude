@@ -1506,7 +1506,9 @@ unsigned long g_heaterManualSinceMs[3] = {0, 0, 0};
 float g_ledBrightPct = 50.0f;
 float g_ledDutyPct = 0.0f;
 bool g_ledPwmOn = false;
-unsigned long g_heaterLastTxMs = 0;
+uint32_t g_heaterLastTxMs[3] = {};
+uint8_t g_pwmOffChannel = 0;
+bool g_pwmOffConfirmed = false;
 unsigned long g_heaterLastProbeMs = 0;
 
 // ── Pozostale ──────────────────────────────────────────────────────────────
@@ -3619,20 +3621,30 @@ static void heaterControlTick() {
   g_heaterPwmOnline = false;
   return;
 #else
-  // Periodowo ponawia bezpieczne OFF/sondowanie, aby wykryc podlaczony modul.
-  if (!g_heaterPwmOnline && (g_heaterLastProbeMs == 0 || (uint32_t)(now - g_heaterLastProbeMs) >= 10000UL)) {
-    g_heaterLastProbeMs = now;
-    g_heaterPwmOnline = heaterPwmAllOff();
-    if (g_heaterPwmOnline) {
-      Serial.printf("[HEATERS] Modbus PWM online @%u; wszystkie kanaly startuja OFF\n", (unsigned)HEATER_PWM_ADDR);
-      eventLogEx("INFO", "HEATERS", "PWM module online @%u; channels initialized OFF", (unsigned)HEATER_PWM_ADDR);
-    }
-  }
-
   if (!g_heaterPwmOnline) {
-    // modul offline: zadne wyjscie nie jest pewne, wiec kasujemy tez tryb reczny
     for (uint8_t i = 0; i < 3; ++i) {
-      g_heaterDutyPct[i] = 0.0f; g_heaterManual[i] = false; g_heaterManualPct[i] = 0.0f;
+      g_heaterDutyPct[i] = 0.0f;
+      g_heaterManual[i] = false;
+      g_heaterManualPct[i] = 0.0f;
+    }
+    g_ledDutyPct = 0.0f;
+    g_ledPwmOn = false;
+
+    if (g_pwmOffChannel == 0) {
+      if (g_heaterLastProbeMs != 0 && uint32_t(now - g_heaterLastProbeMs) < 10000UL) return;
+      g_pwmOffChannel = 1;
+      g_pwmOffConfirmed = true;
+    }
+    // Attempt each output and let HTTP and roof safety run between transactions.
+    if (!heaterPwmWriteChannel(g_pwmOffChannel, 0.0f)) g_pwmOffConfirmed = false;
+    if (++g_pwmOffChannel == 5) {
+      g_pwmOffChannel = 0;
+      g_heaterLastProbeMs = millis();
+      g_heaterPwmOnline = g_pwmOffConfirmed;
+      if (g_heaterPwmOnline) {
+        for (auto& lastTx : g_heaterLastTxMs) lastTx = 0;
+        eventLogEx("INFO", "HEATERS", "PWM module online @%u; all OFF writes acknowledged", (unsigned)HEATER_PWM_ADDR);
+      }
     }
     return;
   }
@@ -3642,37 +3654,39 @@ static void heaterControlTick() {
     if (g_heaterManual[i] && (!g_heaterChannelEnabled[i] ||
         (uint32_t)(now - (uint32_t)g_heaterManualSinceMs[i]) >= (uint32_t)HEATER_MANUAL_TIMEOUT_MIN * 60000UL)) {
       g_heaterManual[i] = false; g_heaterManualPct[i] = 0.0f;
-      g_heaterLastTxMs = 0;
+      g_heaterLastTxMs[i] = 0;
       eventLogEx("INFO", "HEATERS", "Grzalka %u: koniec trybu recznego, powrot do AUTO", (unsigned)(i + 1));
     }
   }
 
   bool sentAny = false;
   bool failed = false;
-  for (uint8_t i = 0; i < 3; ++i) {
+  static uint8_t nextChannel = 0;
+  for (uint8_t offset = 0; offset < 3; ++offset) {
+    const uint8_t i = (nextChannel + offset) % 3;
     float wanted = 0.0f;
     if (HEATER_PWM_ENABLED && g_heaterSensorValid && g_heaterChannelEnabled[i]) {
       if (g_heaterManual[i]) wanted = constrain(g_heaterManualPct[i], 0.0f, 100.0f);
       else if (g_heaterSensorValid) wanted = autoDuty;
     }
-    if (g_heaterLastTxMs == 0 || fabsf(wanted - g_heaterDutyPct[i]) >= 0.5f ||
-        (uint32_t)(now - g_heaterLastTxMs) >= 5000UL) {
+    if (g_heaterLastTxMs[i] == 0 || fabsf(wanted - g_heaterDutyPct[i]) >= 0.5f ||
+        (uint32_t)(now - g_heaterLastTxMs[i]) >= 5000UL) {
+      nextChannel = (i + 1) % 3;
       if (heaterPwmWriteChannel((uint8_t)(i + 1), wanted)) {
         g_heaterDutyPct[i] = wanted;
+        g_heaterLastTxMs[i] = now;
         sentAny = true;
       } else {
         failed = true;
-        break;
       }
-      delay(4);
+      break;
     }
   }
-  if (sentAny) g_heaterLastTxMs = now;
 #if LED_PWM_ENABLED
   {
     // co 5 s ponawiamy jasnosc LED (jak keep-alive grzalek) i jednoczesnie sprawdzamy lacze
     static uint32_t s_ledLastTxMs = 0;
-    if (!failed && g_ledPwmOn &&
+    if (!failed && !sentAny && g_ledPwmOn &&
         (uint32_t)(now - s_ledLastTxMs) >= 5000UL) {
       s_ledLastTxMs = now;
       if (!ledPwmSet(g_ledBrightPct)) failed = true;
@@ -3688,11 +3702,7 @@ static void heaterControlTick() {
     g_ledPwmOn = false;
     g_ledDutyPct = 0.0f;
 #endif
-    (void)heaterPwmAllOff(); // best effort; UI nadal pokazuje awarie komunikacji
-    g_heaterPwmOnline = false;
-    g_heaterLastProbeMs = now;
-    Serial.println(F("[HEATERS] Blad Modbus PWM - zadano OFF, automat grzania zablokowany"));
-    eventLogEx("CRITICAL", "HEATERS", "PWM communication failed; requested OFF and disabled automatic heating");
+    eventLogEx("CRITICAL", "HEATERS", "PWM communication failed; automatic heating suspended; OFF pending");
   }
 #endif
 }
@@ -3705,7 +3715,7 @@ static bool heaterManualSet(int ch, bool manual, float pct) {
   const uint8_t i = (uint8_t)(ch - 1);
   if (!manual) {
     g_heaterManual[i] = false; g_heaterManualPct[i] = 0.0f;
-    g_heaterLastTxMs = 0;   // wymus natychmiastowy zapis do modulu
+    g_heaterLastTxMs[i] = 0;   // wymus natychmiastowy zapis do modulu
     return true;
   }
 #if !PWM_MODULE_ENABLED
@@ -3722,7 +3732,7 @@ static bool heaterManualSet(int ch, bool manual, float pct) {
   g_heaterManual[i] = true;
   g_heaterManualPct[i] = pct;
   g_heaterManualSinceMs[i] = millis();
-  g_heaterLastTxMs = 0;     // wymus natychmiastowy zapis do modulu
+  g_heaterLastTxMs[i] = 0;     // wymus natychmiastowy zapis do modulu
   eventLogEx("INFO", "HEATERS", "Grzalka %d: tryb reczny %.0f%% (auto-powrot po %d min)", ch, pct, (int)HEATER_MANUAL_TIMEOUT_MIN);
   return true;
 #endif
@@ -4341,6 +4351,7 @@ static String buildStateJson() {
   const bool safe = !g_unsafe && safetyInputsUsable();
   j += "{";
   j += "\"fw\":"; j += jsonQuote(FW_VERSION);
+  j += ",\"build\":\"ALPACA-PWM-20261109\"";
   j += ",\"safe\":"; j += (safe ? "true" : "false");
   const String reasonNow=roofState==RoofState::ERROR ? ("BLAD DACHU: "+g_roofMotionFault) :
       g_mountEstop ? ("E-STOP MONTAZU: "+g_mountEstopReason) :
@@ -4804,8 +4815,9 @@ static String buildHistoryJson() {
 }
 
 // ============== writeAll ==============
-static void writeAll(Client &c, const uint8_t* data, size_t len) {
+static void writeAll(Client &c, const char* header, size_t headerLen, const char* body, size_t bodyLen) {
   const size_t CHUNK = 1024;
+  const size_t len = headerLen + bodyLen;
   size_t pos = 0;
   uint8_t tmp[CHUNK];
   const uint32_t start = millis();
@@ -4813,7 +4825,9 @@ static void writeAll(Client &c, const uint8_t* data, size_t len) {
   while (pos < len) {
     if (!c.connected()) break;
     size_t n = (len - pos > CHUNK) ? CHUNK : (len - pos);
-    memcpy(tmp, data + pos, n);
+    const size_t prefix = pos < headerLen ? min(n, headerLen - pos) : 0;
+    if (prefix) memcpy(tmp, header + pos, prefix);
+    if (prefix < n) memcpy(tmp + prefix, body + (pos + prefix - headerLen), n - prefix);
     size_t w = c.write(tmp, n);
     if (w > 0) { pos += w; lastProgress = millis(); } else delay(1);
     serviceRoofFast();
@@ -4826,32 +4840,26 @@ static void writeAll(Client &c, const uint8_t* data, size_t len) {
 }
 
 static void httpSendRaw(Client &c, int code, const char* ct, const char* ct2, const char* body, size_t bodyLen) {
-  c.print(F("HTTP/1.1 ")); c.print(code); c.print(' '); c.println(ct);
-  c.println(F("Connection: close"));
-  c.println(F("Cache-Control: no-store, max-age=0"));
-  c.println(F("X-Content-Type-Options: nosniff"));
-  c.print(F("Content-Type: ")); c.println(ct2);
-  c.print(F("Content-Length: ")); c.println((uint32_t)bodyLen);
-  c.println();
-  writeAll(c, (const uint8_t*)body, bodyLen);
+  char header[256];
+  const int headerLen = snprintf(header, sizeof(header),
+    "HTTP/1.1 %d %s\r\nConnection: close\r\nCache-Control: no-store, max-age=0\r\n"
+    "X-Content-Type-Options: nosniff\r\nContent-Type: %s\r\nContent-Length: %u\r\n\r\n",
+    code, ct, ct2, (unsigned)bodyLen);
+  if (headerLen < 0 || (size_t)headerLen >= sizeof(header)) { c.stop(); return; }
+
+  // Small Alpaca replies use one TCP send instead of a separate send per header field.
+  writeAll(c, header, headerLen, body, bodyLen);
   c.flush(); delay(2);
 }
 
 static void httpSend(Client &c, int code, const char* ct, const String& ct2, const String& body) {
-  c.print(F("HTTP/1.1 ")); c.print(code); c.print(' '); c.println(ct);
-  c.println(F("Connection: close"));
-  c.println(F("Cache-Control: no-store, max-age=0"));
-  c.println(F("X-Content-Type-Options: nosniff"));
-  c.print(F("Content-Type: ")); c.println(ct2);
-  c.print(F("Content-Length: ")); c.println(body.length());
-  c.println();
-  writeAll(c, (const uint8_t*)body.c_str(), body.length());
-  c.flush(); delay(2);
+  httpSendRaw(c, code, ct, ct2.c_str(), body.c_str(), body.length());
 }
 
 static void alpacaSend(Client &c, uint32_t cid, int errNum, const String& errMsg, const String& valJson) {
-  String body = "{\"Value\":" + valJson;
-  body += ",\"ClientTransactionID\":" + String(cid);
+  String body = "{";
+  if (valJson.length()) body += "\"Value\":" + valJson + ",";
+  body += "\"ClientTransactionID\":" + String(cid);
   body += ",\"ServerTransactionID\":" + String(serverTransactionID++);
   body += ",\"ErrorNumber\":" + String(errNum);
   body += ",\"ErrorMessage\":" + jsonQuote(errMsg) + "}";
@@ -4859,6 +4867,11 @@ static void alpacaSend(Client &c, uint32_t cid, int errNum, const String& errMsg
 }
 static void alpacaSendValue(Client &c, uint32_t cid, const String& v) { alpacaSend(c, cid, 0, "", v); }
 static void alpacaSendError(Client &c, uint32_t cid, int n, const String& m) { alpacaSend(c, cid, n, m, "null"); }
+
+static void alpacaSendMeasurement(Client &c, uint32_t cid, float value, int decimals) {
+  if (isfinite(value)) alpacaSendValue(c, cid, jsonNumOrNull(value, decimals));
+  else alpacaSend(c, cid, 0x500, "Sensor has no valid measurement", "");
+}
 
 static String stripAbsoluteUrlToPath(const String& target) {
   int scheme = target.indexOf("://");
@@ -5759,9 +5772,9 @@ static void handleClientImpl(Client &c,const astro_http::Request& request,const 
       alpacaSendValue(c, cid, jsonNumOrNull(cc, 1));
     }
     else if (member == "pressure" && method == "GET")  { alpacaSendValue(c, cid, jsonNumOrNull(g_pressure_hPa, 1)); }
-    else if (member == "windspeed" && method == "GET") { alpacaSendValue(c, cid, jsonNumOrNull(windMeasurementUsable()?g_wind_ms:NAN, 2)); }
+    else if (member == "windspeed" && method == "GET") { alpacaSendMeasurement(c, cid, windMeasurementUsable()?g_wind_ms:NAN, 2); }
     else if (member == "winddirection" && method == "GET") { alpacaSendValue(c, cid, "0"); }
-    else if (member == "windgust" && method == "GET")  { alpacaSendValue(c, cid, jsonNumOrNull(windMeasurementUsable()?g_windGust:NAN, 2)); }
+    else if (member == "windgust" && method == "GET")  { alpacaSendMeasurement(c, cid, windMeasurementUsable()?g_windGust:NAN, 2); }
     else if (member == "rainrate" && method == "GET")  { alpacaSendValue(c, cid, g_rain ? "1.0" : "0.0"); }
     else if (member == "skybrightness" && method == "GET") { alpacaSendValue(c, cid, jsonNumOrNull(g_skyLux, 1)); }
     else if (member == "starfwhm" && method == "GET")  { alpacaSendValue(c, cid, "0"); }

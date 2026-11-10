@@ -107,9 +107,8 @@ static bool modbusRelayTransaction(const uint8_t* req, size_t reqLen,
       if (c < 0) break;
       if (n < respMax) resp[n++] = (uint8_t)c;
     }
-    // Minimalna odpowiedź Modbus RTU dla FC05 to 8 bajtów.
-    if (n >= 8) break;
-    yield();
+    if (n >= 8 || (n >= 5 && resp[0] == req[0] && resp[1] == (req[1] | 0x80))) break;
+    delay(1);
   }
   if (respLen) *respLen = n;
   // FC05 odpowiedź jest dokładnym echem 8-bajtowego żądania.
@@ -176,6 +175,7 @@ static const uint32_t HEATER_PWM_FREQ_CENTIHZ = (uint32_t)PWM_FREQ_HZ * 100UL; /
   #define HEATER_MANUAL_TIMEOUT_MIN 120
 #endif
 extern bool g_heaterPwmOnline;
+extern unsigned long g_heaterLastProbeMs;
 extern float g_heaterDutyPct[3];
 extern float g_ledDutyPct;
 extern float g_ledBrightPct;
@@ -187,7 +187,18 @@ static bool heaterPwmWriteChannel(uint8_t channel, float dutyPct) {
   dutyPct = constrain(dutyPct, 0.0f, 100.0f);
   const auto frame=astro_modbus::pwmFrame((uint8_t)HEATER_PWM_ADDR,channel,HEATER_PWM_FREQ_CENTIHZ,(uint16_t)lroundf(dutyPct*100.0f));
   uint8_t resp[16]; size_t n = 0;
-  return modbusRelayTransaction(frame.data(), frame.size(), resp, sizeof(resp), &n);
+  const bool ok = modbusRelayTransaction(frame.data(), frame.size(), resp, sizeof(resp), &n);
+  if (!ok && g_heaterPwmOnline) {
+    g_heaterLastProbeMs = 0; // request an immediate OFF sweep after a confirmed communication failure
+    const bool validCrc = n >= 5 && modbusCRC16(resp, n - 2) == (uint16_t)(resp[n - 2] | (resp[n - 1] << 8));
+    const bool exception = n == 5 && validCrc && resp[0] == HEATER_PWM_ADDR && resp[1] == 0x90;
+    const char* detail = n == 0 ? "no reply" : exception ? "Modbus exception" :
+                         n != 8 ? "invalid frame length" : !validCrc ? "CRC mismatch" : "unexpected reply";
+    eventLogEx("WARN", "HEATERS", "PWM @%u CH%u: %s (bytes=%u, exception=0x%02X)",
+               (unsigned)HEATER_PWM_ADDR, (unsigned)channel, detail, (unsigned)n,
+               exception ? (unsigned)resp[2] : 0U);
+  }
+  return ok;
 #else
   (void)channel; (void)dutyPct;
   return false;

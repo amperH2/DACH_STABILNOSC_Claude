@@ -122,7 +122,7 @@ private:
 	// Establish TCP connection (Passive connection)
 	static uint8_t socketListen(uint8_t s);
 	// Send data (TCP)
-	static uint16_t socketSend(uint8_t s, const uint8_t * buf, uint16_t len);
+	static uint16_t socketSend(uint8_t s, const uint8_t *buf, uint16_t len, uint32_t budgetMs = 2000);
 	static uint16_t socketSendAvailable(uint8_t s);
 	// Receive data (TCP)
 	static int socketRecv(uint8_t s, uint8_t * buf, int16_t len);
@@ -223,6 +223,7 @@ public:
 	virtual int availableForWrite(void);
 	virtual size_t write(uint8_t);
 	virtual size_t write(const uint8_t *buf, size_t size);
+	size_t writeHttp(const uint8_t *buf, size_t size);
 	virtual int available();
 	virtual int read();
 	virtual int read(uint8_t *buf, size_t size);

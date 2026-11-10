@@ -8,20 +8,23 @@
 #include <lwip/sockets.h>
 // HTTP only: all Print/Client calls made by route handlers retain this virtual
 // bounded transport. WiFiClient::setTimeout does not bound its write retry loop.
+inline void astroHttpConfigure(WiFiClient& c) { c.setTimeout(1); }
 inline size_t astroHttpWrite(WiFiClient& c,const uint8_t* data,size_t size) {
   if(c.fd()<0) return 0;
   const int n=::send(c.fd(),data,size,MSG_DONTWAIT);
   return n>0 ? size_t(n) : 0;
 }
 #if USE_W5500
+// Stream::setTimeout does not set the timeout used by EthernetClient::stop().
+inline void astroHttpConfigure(EthernetClient& c) { c.setConnectionTimeout(20); }
 inline size_t astroHttpWrite(EthernetClient& c,const uint8_t* data,size_t size) {
-  return c.write(data,size); // vendored socketSend has bounded chip and send waits
+  return c.writeHttp(data,size);
 }
 #endif
 template<class Socket> class AstroHttpClient : public Client {
   Socket socket;
 public:
-  void attach(Socket incoming) { socket=incoming; socket.setTimeout(1); }
+  void attach(Socket incoming) { socket=incoming; astroHttpConfigure(socket); }
   void setTimeout(unsigned long value) { socket.setTimeout(value); }
   IPAddress remoteIP() { return socket.remoteIP(); }
   int connect(IPAddress ip,uint16_t port) override { return socket.connect(ip,port); }
