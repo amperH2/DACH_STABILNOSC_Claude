@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-04",
+  "verified": true,
+  "port": "COM3",
+  "html_bytes": 143295,
+  "html_sha256": "8b94062f2c1ba3f000393b668fbe31580639892d73591480427cdf832fa35384",
+  "live_html_matches_source": true,
+  "alpaca_names_and_descriptions_verified": true,
+  "alpaca_identifiers_unchanged": true,
+  "event_prefix_verified": true,
+  "event_count_checked": 11,
+  "roof": "CLOSED",
+  "motion_fault": "",
+  "uptime_s": 7,
+  "no_manual_notification_tests": true,
+  "no_roof_motion_commands": true,
+  "post_startup_roof": "CLOSED",
+  "post_startup_wind": "OK",
+  "post_startup_uptime_s": 90
+}

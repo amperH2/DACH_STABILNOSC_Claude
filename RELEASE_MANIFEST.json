@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_ONLY_NOT_FLASHED",
+  "offline_suites": "38/38 PASS",
+  "full_build": "BLOCKED: permission denied on PlatformIO platforms.lock before compilation",
+  "firmware_api_identity_unchanged": "ASTRO-ROOF SAFE | Specula Carpathia | SAFE-RECOVERY-20261105",
+  "changes": [
+    "src/main.cpp: short Alpaca names/descriptions and log footer",
+    "src/web_ui.h: subtitle without region"
+  ],
+  "original_project": "DACH_SPECULA_SAFE_RECOVERY_20261105",
+  "secrets_excluded_from_zip": true
+}

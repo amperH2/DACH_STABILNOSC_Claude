@@ -1,0 +1,180 @@
+--- 20261104/src/main.cpp
++++ SAFE_RECOVERY/src/main.cpp
+@@ -55,7 +55,7 @@
+ 
+ // ── Identyfikacja firmware (zeby nie mylic wersji sterownika) ──────────────
+ #ifndef FW_VERSION
+-  #define FW_VERSION "ASTRO-ROOF SAFE RC5.2 operator and roof policy + DH1 TEMP3 NETFIX2 (2026-10-28)"
++  #define FW_VERSION "ASTRO-ROOF SAFE | " OBSERVATORY_NAME " | SAFE-RECOVERY-20261105"
+ #endif
+ 
+ // ============== KONFIG ==============
+@@ -953,7 +953,7 @@
+ bool g_roofMoveStartLimitOpen   = false;
+ bool g_roofStuckChecked         = false;
+ String g_roofMotionFault        = "";
+-enum class RoofFaultKind { NONE, COMMUNICATION, PHYSICAL, STOP_UNCONFIRMED };
++enum class RoofFaultKind { NONE, COMMUNICATION, PHYSICAL, STOP_UNCONFIRMED, PARK_LOST };
+ RoofFaultKind g_roofFaultKind=RoofFaultKind::NONE;
+ bool g_stopCommandConfirmed = false;
+ bool g_stopReleaseConfirmed = true;
+@@ -2558,6 +2558,37 @@
+   return true;
+ }
+ 
++// Explicit operator inspection is mandatory at the authenticated fault_ack endpoint.
++// Never called by the automatic weather loop; no motion command is issued here.
++static bool parkLossRecoveryReady() {
++#if PARK_GUARD_ENABLED
++  sampleHardwarePark();
++  return digitalRead(PARK_SENSOR_PIN)==LOW && digitalRead(PARK_SENSOR_DEC_PIN)==LOW &&
++    g_stablePark.ready((uint32_t)millis(),PARK_SETTLE_MS) && clearanceAllowsClose() &&
++    !(limitClosedActive() && limitOpenActive()) && !mountProtectionBlocksClose() &&
++    collisionClearForRoofMove() && modbusRelayOK &&
++    g_stopAttempted && g_stopCommandConfirmed && g_stopReleaseConfirmed &&
++    !pulseActive[RELAY_ROOF_OPEN] && !pulseActive[RELAY_ROOF_CLOSE] && !pulseActive[RELAY_ROOF_STOP];
++#else
++  return false; // No physical PARK inputs configured: no PARK-loss acknowledgment.
++#endif
++}
++static bool acknowledgeParkLossFault() {
++  const uint32_t stopEpoch=g_stopEpoch;
++  if(roofState!=RoofState::ERROR || g_roofFaultKind!=RoofFaultKind::PARK_LOST || !parkLossRecoveryReady())
++    return blockRoofCommand("ACK PARK: wymagane stabilne RA/DEC, STOP/OFF, inspekcja i brak blokad");
++  if(!modbusRelayPollNow() || modbusRelayActualState[RELAY_ROOF_OPEN] ||
++     modbusRelayActualState[RELAY_ROOF_CLOSE] || modbusRelayActualState[RELAY_ROOF_STOP] ||
++     g_stopEpoch!=stopEpoch || roofState!=RoofState::ERROR || g_roofFaultKind!=RoofFaultKind::PARK_LOST ||
++     !parkLossRecoveryReady()) // Recheck inputs, fault identity and concurrent STOP after IO.
++    return blockRoofCommand("ACK PARK: odczyt OFF lub ponowne sprawdzenie PARK/blokad nieudane");
++  g_roofFaultKind=RoofFaultKind::NONE;g_roofMotionFault="";
++  roofState=limitClosedActive()?RoofState::CLOSED:limitOpenActive()?RoofState::OPEN:RoofState::STOPPED;
++  g_pendingAutoClose=false;
++  eventLogEx("WARN","ROOF","Operator inspected stationary roof; stable PARK restored and STOP/OFF verified; PARK fault acknowledged, no motion commanded");
++  return true;
++}
++
+ // ════════════════════════════════════════════════════════════════════════
+ // E-STOP MONTAZU (krancowka overtravel)
+ // ════════════════════════════════════════════════════════════════════════
+@@ -2806,7 +2837,7 @@
+ #if PARK_GUARD_ENABLED
+   if (astro_roof::parkRequiredDuringMotion(roofState,CLOSE_CLEARANCE_CONFIRMED) && !(roofState==RoofState::OPENING && limitOpenActive() && !limitClosedActive()) &&
+       (digitalRead(PARK_SENSOR_PIN)!=LOW || digitalRead(PARK_SENSOR_DEC_PIN)!=LOW)) {
+-    roofFaultStop("Utrata parku RA/DEC podczas ruchu dachu");
++    roofFaultStop("Utrata parku RA/DEC podczas ruchu dachu",RoofFaultKind::PARK_LOST);
+     return;
+   }
+ #endif
+@@ -4345,7 +4376,7 @@
+   j += ",\"limit_closed\":"; j += (limitClosedActive() ? "true" : "false");
+   j += ",\"limit_open\":";   j += (limitOpenActive()   ? "true" : "false");
+   j += ",\"motion_fault\":"; j += jsonQuote(g_roofMotionFault);
+-  j += ",\"fault_class\":"; j += jsonQuote(g_roofFaultKind==RoofFaultKind::COMMUNICATION?"COMMUNICATION":g_roofFaultKind==RoofFaultKind::PHYSICAL?"PHYSICAL":g_roofFaultKind==RoofFaultKind::STOP_UNCONFIRMED?"STOP_UNCONFIRMED":"NONE");
++  j += ",\"fault_class\":"; j += jsonQuote(g_roofFaultKind==RoofFaultKind::COMMUNICATION?"COMMUNICATION":g_roofFaultKind==RoofFaultKind::PARK_LOST?"PARK_LOST":g_roofFaultKind==RoofFaultKind::PHYSICAL?"PHYSICAL":g_roofFaultKind==RoofFaultKind::STOP_UNCONFIRMED?"STOP_UNCONFIRMED":"NONE");
+   j += ",\"stop_attempted\":"; j += g_stopAttempted?"true":"false";
+   j += ",\"stop_command_confirmed\":"; j += g_stopCommandConfirmed?"true":"false";
+   j += ",\"stop_release_confirmed\":"; j += g_stopReleaseConfirmed?"true":"false";
+@@ -4696,7 +4727,7 @@
+   j += ",\"tg_q\":0";
+ #endif
+   j += ",\"motion_fault\":"; j += jsonQuote(g_roofMotionFault);
+-  j += ",\"fault_class\":"; j += jsonQuote(g_roofFaultKind==RoofFaultKind::COMMUNICATION?"COMMUNICATION":g_roofFaultKind==RoofFaultKind::PHYSICAL?"PHYSICAL":g_roofFaultKind==RoofFaultKind::STOP_UNCONFIRMED?"STOP_UNCONFIRMED":"NONE");
++  j += ",\"fault_class\":"; j += jsonQuote(g_roofFaultKind==RoofFaultKind::COMMUNICATION?"COMMUNICATION":g_roofFaultKind==RoofFaultKind::PARK_LOST?"PARK_LOST":g_roofFaultKind==RoofFaultKind::PHYSICAL?"PHYSICAL":g_roofFaultKind==RoofFaultKind::STOP_UNCONFIRMED?"STOP_UNCONFIRMED":"NONE");
+   j += ",\"anem_en\":";     j += (g_anemometerEnabled ? "true" : "false");
+   j += "}";
+ 
+@@ -5118,7 +5149,7 @@
+             "<select class='sel' id='cat' onchange='render()'><option value='ALL'>Wszystkie kategorie</option></select></div>"
+             "<div class='stats'><span class='stat'>RAM wpisów: <b id='count'>0</b></span><span class='stat'>Ostatni: <b id='last'>—</b></span><span class='stat'>FS: <b id='fs'>LittleFS</b></span></div></div>"
+             "<div class='wrap'><div class='row head'><div>CZAS</div><div>POZIOM</div><div>KATEGORIA</div><div>ZDARZENIE</div></div><div id='log'><div class='empty'>Ładowanie...</div></div></div>"
+-            "<div class='foot'>ASTRO-ROOF SAFE RC5.2 TEMP3 - LOG</div>"
++            "<div class='foot'>" FW_VERSION " - LOG</div>"
+             "<script>let data=[],auto=true,timer=null;const $=id=>document.getElementById(id);"
+             "async function loadLog(){try{const r=await fetch('/api/log?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error(r.status);data=await r.json();buildCats();render();}catch(e){$('log').innerHTML='<div class=empty>Brak odpowiedzi /api/log: '+e+'</div>';}}"
+             "function buildCats(){let s=$('cat'),old=s.value,cs=[...new Set(data.map(x=>x.category))].sort();s.innerHTML='<option value=\"ALL\">Wszystkie kategorie</option>'+cs.map(c=>'<option>'+esc(c)+'</option>').join('');if(cs.includes(old))s.value=old;}"
+@@ -5344,7 +5375,7 @@
+     }
+     if (doCmd=="fault_ack") {
+       cmdOk=g_manualMode && g_manualAuthorized && getParamValue(params,"manual_pass")==String(AUTH_PASS) && getParamValue(params,"confirm")=="INSPECTED_STATIONARY";
+-      if(cmdOk) cmdOk=acknowledgeCommunicationFault();
++      if(cmdOk) cmdOk=g_roofFaultKind==RoofFaultKind::PARK_LOST ? acknowledgeParkLossFault() : acknowledgeCommunicationFault();
+       else g_lastRoofBlockReason="ACK: wymagany autoryzowany MANUAL, haslo i inspekcja nieruchomego dachu";
+     }
+     if (doCmd == "manual_off") { cmdOk=manualModeOff();if(!cmdOk)g_lastRoofBlockReason="Nie potwierdzono zapisu AUTO"; }
+@@ -5649,7 +5680,7 @@
+     String member = base.substring(16);
+     if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ESP32 Weather Safety")); }
+     else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - Safety: MLX90614, RG11, wind")); }
+-    else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 SafetyMonitor")); }
++    else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote(FW_VERSION " SafetyMonitor")); }
+     else if (member == "driverversion" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("1.0")); }
+     else if (member == "interfaceversion" && method == "GET") { alpacaSendValue(c, cid, "3"); }
+     else if (member == "supportedactions" && method == "GET") { alpacaSendValue(c, cid, "[]"); }
+@@ -5687,7 +5718,7 @@
+     String member = base.substring(22);
+     if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ESP32 Weather Conditions")); }
+     else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - MLX90614, BME280, RG11, wind")); }
+-    else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 ObservingConditions")); }
++    else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote(FW_VERSION " ObservingConditions")); }
+     else if (member == "driverversion" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("1.0")); }
+     else if (member == "interfaceversion" && method == "GET") { alpacaSendValue(c, cid, "3"); }
+     else if (member == "supportedactions" && method == "GET") { alpacaSendValue(c, cid, "[]"); }
+@@ -5773,8 +5804,8 @@
+   if (base.startsWith("dome/0/")) {
+     String member = base.substring(7);
+     if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ESP32 Roof Dome")); }
+-    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ASTRO-ROOF SAFE RC5.2 TEMP3 roll-off roof")); }
+-    else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 Dome")); }
++    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - Roll-off roof")); }
++    else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote(FW_VERSION " Dome")); }
+     else if (member == "driverversion" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("1.0")); }
+     else if (member == "interfaceversion" && method == "GET") { alpacaSendValue(c, cid, "2"); }
+     else if (member == "supportedactions" && method == "GET") { alpacaSendValue(c, cid, "[\"RoofPosition\",\"RoofState\"]"); }
+--- 20261104/src/web_ui.h
++++ SAFE_RECOVERY/src/web_ui.h
+@@ -813,7 +813,7 @@
+       </div>
+         <div id="faultRecovery" hidden>
+           <p id="faultRecoveryReason"></p>
+-          <button class="btn" id="btnFaultAck" onclick="ackFault()" disabled>Potwierdź usunięcie błędu komunikacji</button>
++          <button class="btn" id="btnFaultAck" onclick="ackFault()" disabled>Potwierdź usunięcie błędu po inspekcji</button>
+         </div>
+         <div id="faultAckResult" role="status" aria-live="polite" hidden></div>
+ 
+@@ -1810,22 +1810,23 @@
+ let faultAckBusy=false;
+ function faultRecoveryView(st){
+   const roof=st&&st.roof||{};
+-  const visible=roof.state==='ERROR'&&roof.fault_class==='COMMUNICATION';
++  const visible=roof.state==='ERROR'&&['COMMUNICATION','PARK_LOST'].includes(roof.fault_class);
+   const reasons=[];
+   if(!st||!st.manual_mode||!st.manual_authorized)reasons.push('Włącz i autoryzuj MANUAL');
++  if(roof.fault_class==='PARK_LOST'&&!(st.park_ra===true&&st.park_dec===true&&st.park_hw_stable===true))reasons.push('PARK RA/DEC musi wrócić i pozostać stabilny');
+   if(roof.limit_closed&&roof.limit_open)reasons.push('sprzeczne krańcówki — wymagana inspekcja');
+   if(!roof.stop_command_confirmed||!roof.stop_release_confirmed)reasons.push('wymagane potwierdzenie STOP i zwolnienia przekaźnika');
+-  return {visible,enabled:visible&&reasons.length===0,reason:reasons.length?reasons.join(' · '):'Po inspekcji nieruchomego dachu można odblokować błąd komunikacji. Sterownik sprawdzi STOP, wyjścia i blokady. Następnie ochrona pogodowa może zażądać CLOSE.'};
++  return {visible,enabled:visible&&reasons.length===0,reason:reasons.length?reasons.join(' · '):'Po inspekcji nieruchomego dachu można potwierdzić usunięcie przyczyny błędu. Sterownik sprawdzi STOP, wyjścia i blokady. Następnie ochrona pogodowa może zażądać CLOSE.'};
+ }
+ function renderFaultRecovery(st){
+   const view=faultRecoveryView(st),panel=$('faultRecovery'),button=$('btnFaultAck'),reason=$('faultRecoveryReason');
+   if(panel)panel.hidden=!view.visible;
+-  if(button){button.disabled=!view.enabled||faultAckBusy;button.textContent=faultAckBusy?'Sprawdzanie…':'Potwierdź usunięcie błędu komunikacji';}
++  if(button){button.disabled=!view.enabled||faultAckBusy;button.textContent=faultAckBusy?'Sprawdzanie…':'Potwierdź usunięcie błędu po inspekcji';}
+   if(reason)reason.textContent=view.reason;
+ }
+ async function ackFault(){
+   if(faultAckBusy||!faultRecoveryView(lastRoofState).enabled)return;
+-  if(!confirm('Po inspekcji: napęd fizycznie nieruchomy, dach i tor ruchu sprawdzone, komunikacja naprawiona? Po odblokowaniu ochrona pogodowa może zażądać CLOSE.'))return;
++  if(!confirm('Po inspekcji: napęd fizycznie nieruchomy, dach i tor ruchu sprawdzone, przyczyna błędu usunięta i PARK sprawdzony? Po odblokowaniu ochrona pogodowa może zażądać CLOSE.'))return;
+   const password=prompt('Hasło panelu WWW — potwierdzenie inspekcji:');if(!password)return;
+   faultAckBusy=true;renderFaultRecovery(lastRoofState);
+   const result=$('faultAckResult');
+@@ -1834,7 +1835,7 @@
+     const r=await commandFetch('/cmd',{body:new URLSearchParams({do:'fault_ack',confirm:'INSPECTED_STATIONARY',manual_pass:password,ajax:'1'}).toString()});
+     const j=await r.json();
+     if(!r.ok||j.ok!==true)report('Potwierdzenie odrzucone: '+(j.error||'sterownik nie potwierdził operacji (HTTP '+r.status+')'));
+-    else report('Błąd komunikacji odblokowany. Sprawdź stan: ochrona pogodowa pozostaje aktywna.');
++    else report('Błąd odblokowany po inspekcji. Sprawdź stan: ochrona pogodowa pozostaje aktywna.');
+     await refresh(false);
+   }catch(e){report('Brak potwierdzenia ze sterownika: '+e.message);}
+   finally{faultAckBusy=false;renderFaultRecovery(lastRoofState);}

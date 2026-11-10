@@ -1,0 +1,1 @@
+PASS: complete main.cpp comparison after reversing only reviewed identity edits. Complete Telegram/Pushover/SMS scope comparison PASS. All pre-existing include/lib files, hardware.ini, do_names.ini and platformio.ini identical. No control, sensor, threshold, GPIO, port, endpoint or scheduling changes.

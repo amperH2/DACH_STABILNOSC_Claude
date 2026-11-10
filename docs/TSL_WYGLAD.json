@@ -1,0 +1,70 @@
+[
+  {
+    "viewport": 320,
+    "width": 300,
+    "scroll": 298,
+    "client": 298,
+    "labels": [
+      {
+        "scroll": 266,
+        "client": 266
+      },
+      {
+        "scroll": 266,
+        "client": 266
+      }
+    ],
+    "text": "💡 Natężenie oświetlenia (TSL2591)\n12.34\nlx\nUmiarkowane oświetlenie\n◔ Ciemno\n◑ Umiarkowanie\n● Jasno\nKanał szerokopasmowy (VIS + IR)\nSurowy odczyt — nie lx\n26809\nKanał podczerwieni (IR)\nSurowy odczyt — nie lx\n6902\n\nPomiar natężenia oświetlenia. Nie jest to pomiar SQM ani ocena w skali Bortle’a."
+  },
+  {
+    "viewport": 390,
+    "width": 370,
+    "scroll": 368,
+    "client": 368,
+    "labels": [
+      {
+        "scroll": 336,
+        "client": 336
+      },
+      {
+        "scroll": 336,
+        "client": 336
+      }
+    ],
+    "text": "💡 Natężenie oświetlenia (TSL2591)\n12.34\nlx\nUmiarkowane oświetlenie\n◔ Ciemno\n◑ Umiarkowanie\n● Jasno\nKanał szerokopasmowy (VIS + IR)\nSurowy odczyt — nie lx\n26809\nKanał podczerwieni (IR)\nSurowy odczyt — nie lx\n6902\n\nPomiar natężenia oświetlenia. Nie jest to pomiar SQM ani ocena w skali Bortle’a."
+  },
+  {
+    "viewport": 430,
+    "width": 410,
+    "scroll": 408,
+    "client": 408,
+    "labels": [
+      {
+        "scroll": 376,
+        "client": 376
+      },
+      {
+        "scroll": 376,
+        "client": 376
+      }
+    ],
+    "text": "💡 Natężenie oświetlenia (TSL2591)\n12.34\nlx\nUmiarkowane oświetlenie\n◔ Ciemno\n◑ Umiarkowanie\n● Jasno\nKanał szerokopasmowy (VIS + IR)\nSurowy odczyt — nie lx\n26809\nKanał podczerwieni (IR)\nSurowy odczyt — nie lx\n6902\n\nPomiar natężenia oświetlenia. Nie jest to pomiar SQM ani ocena w skali Bortle’a."
+  },
+  {
+    "viewport": 1280,
+    "width": 1240,
+    "scroll": 1238,
+    "client": 1238,
+    "labels": [
+      {
+        "scroll": 594,
+        "client": 594
+      },
+      {
+        "scroll": 594,
+        "client": 594
+      }
+    ],
+    "text": "💡 Natężenie oświetlenia (TSL2591)\n12.34\nlx\nUmiarkowane oświetlenie\n◔ Ciemno\n◑ Umiarkowanie\n● Jasno\nKanał szerokopasmowy (VIS + IR)\nSurowy odczyt — nie lx\n26809\nKanał podczerwieni (IR)\nSurowy odczyt — nie lx\n6902\n\nPomiar natężenia oświetlenia. Nie jest to pomiar SQM ani ocena w skali Bortle’a."
+  }
+]

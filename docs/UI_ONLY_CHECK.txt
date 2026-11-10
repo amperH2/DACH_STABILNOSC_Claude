@@ -1,0 +1,1 @@
+PASS: DOM IDs and event handlers identical. JavaScript only requested wording/comments. All other src/include/lib files match prior NETFIX2 manifest. Hardware, GPIO, APIs, thresholds, safety policy and computations unchanged.

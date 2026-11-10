@@ -1,0 +1,15 @@
+.pio/
+secrets.ini
+.vscode/
+__pycache__/
+
+*.bin
+*.elf
+*.map
+compile_commands.json
+main.d
+*.local.ini
+*.local.json
+*.log
+!docs/*TESTS.log
+!docs/*BUILD.log

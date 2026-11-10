@@ -1,0 +1,38 @@
+--- NETFIX1/src/main.cpp
++++ NETFIX2/src/main.cpp
+@@ -54,7 +54,7 @@
+ 
+ // ── Identyfikacja firmware (zeby nie mylic wersji sterownika) ──────────────
+ #ifndef FW_VERSION
+-  #define FW_VERSION "ASTRO-ROOF SAFE RC5.2 operator and roof policy + DH1 TEMP3 NETFIX1 (2026-10-28)"
++  #define FW_VERSION "ASTRO-ROOF SAFE RC5.2 operator and roof policy + DH1 TEMP3 NETFIX2 (2026-10-28)"
+ #endif
+ 
+ // ============== KONFIG ==============
+@@ -4774,20 +4774,23 @@
+ 
+ // ============== writeAll ==============
+ static void writeAll(Client &c, const uint8_t* data, size_t len) {
+-  const size_t CHUNK = 256;
++  const size_t CHUNK = 1024;
+   size_t pos = 0;
+   uint8_t tmp[CHUNK];
+   const uint32_t start = millis();
++  uint32_t lastProgress = start;
+   while (pos < len) {
+     if (!c.connected()) break;
+     size_t n = (len - pos > CHUNK) ? CHUNK : (len - pos);
+     memcpy(tmp, data + pos, n);
+     size_t w = c.write(tmp, n);
+-    if (w > 0) pos += w; else delay(1);
++    if (w > 0) { pos += w; lastProgress = millis(); } else delay(1);
+     serviceRoofFast();
+     httpUrgentTick(); // STOP/SafetyMonitor can use the other session during a response
+     yield();
+-    if (millis() - start > 1000) { c.stop(); break; }
++    // Bound a stalled peer separately from the complete 138 kB page.
++    if (uint32_t(millis() - lastProgress) > 1000 ||
++        uint32_t(millis() - start) > 10000) { c.stop(); break; }
+   }
+ }
+ 

@@ -1,0 +1,15 @@
+{
+  "timeout_sec": 180,
+  "telescope": {
+    "base_url": "http://127.0.0.1:11111",
+    "device_number": 0,
+    "user": "",
+    "password": ""
+  },
+  "roof": {
+    "base_url": "http://192.0.2.1:11111",
+    "device_number": 0,
+    "user": "CHANGE_LOCALLY",
+    "password": "CHANGE_LOCALLY"
+  }
+}

@@ -1,0 +1,105 @@
+check_command_transport.cjs
+Command transport PASS: POST/body/token, password absent from URL, calibration body, STOP and read-only GET
+
+check_http_page.py
+PASS production Ethernet waits, unstable registers, no TX space/SEND_OK, partial writes, SPI release, timer rollover, socket guards and nonblocking HTTP; watchdog retained
+PASS complete 138 kB HTTP page, partial writes, stalled peer, millis wrap and fast safety servicing
+
+check_joint_safety.py
+PASS: temperature/ObservingConditions cannot reset NINA watchdog; MANUAL has no false automatic-return flag
+
+check_local_do.cjs
+Local DO tests PASS: seven/stable channels, text-only names, readback states, offline/auth disable, spare hiding, request URL and server rejection. Simulated DOM, no device.
+
+check_manual_activation.cjs
+MANUAL activation PASS: actual submit handler, empty password, persistent activation without duration, rejection and password cleanup
+
+check_manual_web.cjs
+MANUAL WWW PASS: password stays in POST body; cancellation, locked restart, STOP, persistent UI, inspection reset forms
+
+check_net_udp.py
+PASS stalled UDP discard, short/valid UDP headers, exact DNS reads/budgets and seconds-based outer TLS timeouts
+
+check_netfix.py
+PASS production Ethernet waits, unstable registers, no TX space/SEND_OK, partial writes, SPI release, timer rollover, socket guards and nonblocking HTTP; watchdog retained
+
+check_nina_integration.py
+NINA integration PASS: real park logic, both command gates, no repeated pulses, AUTO path, Alpaca dispatch, live sensor STOP and latched fault
+
+check_notifications_web.cjs
+Notification panel PASS: syntax, token transport, no API keys, text-only results and unavailable-channel gates
+
+check_online.py
+Online policy/TLS/heartbeat lease/secret omission/CSRF/modem-selection checks PASS
+
+check_operator_policy.py
+Operator policy PASS: extracted NVS reboot/failure scenarios; mount latch; source gates, relay initialization, browser/Alpaca access and exact-host config validation
+
+check_pc_park.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.001s
+
+OK
+
+check_policy_invariants.py
+RC5.1 invariants PASS: 98 functions compared after exact TEMP3 policy normalization; hardware values and wind calibration/ranges retained
+
+check_project.py
+153 checks passed: config, protocol vectors, 128 AUX ownership combinations, invalid-build guards
+
+check_protected_actions.cjs
+Protected actions PASS: cut failure reported, restore authorization/cancel/password, open-roof communication ACK and missing STOP-release gate
+
+check_rc4.py
+RC4 PASS: production constexpr state/sensor/parser simulations, fault STOP paths, physical gates, manual ownership, timestamp provenance, hardware and threshold invariants
+
+check_rc41_invariants.py
+Baseline PASS: unchanged functions/files retain prior hashes; intentional RC42 changes checked separately; thresholds, physical gates and emergency control visibility retained
+
+check_rc42.py
+RC4.2 PASS: weather matrix, dense-cloud transitions/rollover, parser, pulse cleanup ordering, STOP/CLOSE gates, persistent MANUAL and HTTP contracts
+
+check_rc43.py
+RC4.3 PASS: extracted CLOSE scenarios, unparked/offline PC, geometry fallback, physical vetoes, OPEN park, motion monitor and notification ordering
+
+check_recovery_policy.py
+Recovery PASS: extracted production acknowledgment, three positions and thirteen refusal cases; no motion interface in harness
+
+check_relay_failures.py
+Production relay fault injection PASS: lost ON, OFF applied/unapplied, lost STOP and failed STOP release
+
+check_status_web.cjs
+Status WWW PASS: separate RA/DEC, atpark and SafetyMonitor, stale/history/unknown, failed reads, 32 status combinations, stale panel STOP access, reversible full/compact mode
+
+check_tsl_labels.cjs
+PASS neutral TSL labels, unchanged boundaries, raw channels and lx unit
+
+check_weather_nina.py
+PASS NINA selected-input policy, strict old firmware fallback, closed-roof protection, invalid-policy veto, startup ignores omitted clouds and waits for recovery
+
+check_weather_policy.py
+PASS weather selection, 32 masks, NVS corruption, moisture confirmation/hysteresis, reopen delay, auth/closed/manual gate; no motion from settings route
+
+check_weather_web.cjs
+PASS weather WWW: persisted-state display, explicit five selectors, edits survive polling, authenticated POST transport, disabled outside closed MANUAL, server errors
+
+check_web.cjs
+WWW tests passed: five AUX, reserved-channel hiding, CH6 readback, stable ID, offline UNKNOWN
+
+check_wind.py
+Production C++ wind calibration/validity checks: PASS
+
+check_wind_recovery.py
+PASS recovery latch, unchanged low-voltage rejection/rain thresholds, bounded park exchange and diagnostic breadcrumbs
+
+check_wind_web.cjs
+Wind WWW tests PASS: POST, safe default, explicit confirmation, independent calibration, server rejection
+
+do_policy_checks.cpp
+
+operator_policy_checks.cpp
+
+wind_checks.cpp
+
+wind_glitch_checks.cpp

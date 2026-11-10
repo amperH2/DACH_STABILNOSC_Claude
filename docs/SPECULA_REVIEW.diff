@@ -1,0 +1,307 @@
+--- before/observatory.ini
++++ Specula/observatory.ini
+@@ -0,0 +1,4 @@
++[observatory]
++OBSERVATORY_NAME = Specula Carpathia
++OBSERVATORY_SHORT_NAME = SPECULA
++OBSERVATORY_HOSTNAME = specula-carpathia
+--- before/scripts/config_core.py
++++ Specula/scripts/config_core.py
+@@ -42,3 +42,19 @@
+         if len(hosts)>8 or any(str(ipaddress.IPv4Address(h))!=h or h=='0.0.0.0' for h in hosts):
+             raise ValueError('ALPACA_TRUSTED_IPS requires at most 8 exact canonical IPv4 hosts')
+     return values
++
++
++def load_observatory(path):
++    cfg=configparser.ConfigParser(interpolation=None,strict=True);cfg.optionxform=str
++    if not cfg.read(path,encoding='utf-8-sig') or cfg.sections()!=['observatory']:
++        raise ValueError('observatory.ini requires [observatory]')
++    keys={'OBSERVATORY_NAME','OBSERVATORY_SHORT_NAME','OBSERVATORY_HOSTNAME'}
++    if set(cfg['observatory'])!=keys:raise ValueError('observatory.ini requires exactly name, short name and hostname')
++    values={k:v.strip() for k,v in cfg['observatory'].items()}
++    for k,v in list(values.items()):
++        if v.startswith('"'):values[k]=json.loads(v)
++        if not isinstance(values[k],str):raise ValueError('Identity must be text')
++    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}',values['OBSERVATORY_NAME']):raise ValueError('Invalid observatory name')
++    if not re.fullmatch(r'[A-Z0-9_-]{1,24}',values['OBSERVATORY_SHORT_NAME']):raise ValueError('Invalid short name')
++    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?',values['OBSERVATORY_HOSTNAME']):raise ValueError('Invalid hostname')
++    return values
+--- before/scripts/load_config.py
++++ Specula/scripts/load_config.py
+@@ -2,18 +2,19 @@
+ from pathlib import Path
+ import sys,json,configparser
+ sys.path.insert(0,str(Path(env.subst('$PROJECT_DIR'))/'scripts'))
+-from config_core import load_hardware,load_secrets
++from config_core import load_hardware,load_secrets,load_observatory
+ root=Path(env.subst('$PROJECT_DIR'))
+ profile=env.subst('$PIOENV')
+ hardware=load_hardware(root/'hardware.ini',profile)
+ secrets=load_secrets(root/'secrets.ini')
++identity=load_observatory(root/'observatory.ini')
+ # Private per-profile header: credentials never enter compiler command arguments.
+ # Application options do not force an unnecessary rebuild of every external library.
+ directory=Path(env.subst('$BUILD_DIR'))/'generated'
+ directory.mkdir(parents=True,exist_ok=True)
+ header=directory/'astro_generated_config.h'
+ content='#pragma once\n'+''.join('#define '+k+' '+str(v)+'\n' for k,v in hardware.items())
+-content+=''.join('#define '+k+' '+json.dumps(v,ensure_ascii=True)+'\n' for k,v in secrets.items())
++content+=''.join('#define '+k+' '+json.dumps(v,ensure_ascii=True)+'\n' for k,v in {**secrets,**identity}.items())
+ labels=configparser.ConfigParser(interpolation=None,strict=True);labels.optionxform=str
+ labels.read(root/'do_names.ini',encoding='utf-8-sig')
+ if labels.sections()!=['outputs'] or set(labels['outputs'])!={f'DO{n}' for n in range(1,8)}:
+--- before/include/observatory_identity.h
++++ Specula/include/observatory_identity.h
+@@ -0,0 +1,16 @@
++#pragma once
++#include <Arduino.h>
++#include <stdio.h>
++#include <string.h>
++#define OBSERVATORY_PREFIX "[" OBSERVATORY_SHORT_NAME "]"
++// Add once at presentation/transport boundaries. Keep event causes and sources.
++inline String observatoryMessage(const String& text) {
++  if(text==OBSERVATORY_PREFIX || text.startsWith(OBSERVATORY_PREFIX " ")) return text;
++  return String(OBSERVATORY_PREFIX " ")+text;
++}
++inline void observatoryCopyMessage(char* dest,size_t capacity,const char* text) {
++  if(!text) text="";
++  const size_t n=strlen(OBSERVATORY_PREFIX);
++  const bool prefixed=strncmp(text,OBSERVATORY_PREFIX,n)==0 && (text[n]==' ' || text[n]=='\0');
++  snprintf(dest,capacity,prefixed?"%s":"%s %s",prefixed?text:OBSERVATORY_PREFIX,text);
++}
+--- before/src/main.cpp
++++ Specula/src/main.cpp
+@@ -5,6 +5,7 @@
+ 
+ #include <Arduino.h>
+ #include "astro_config.h"
++#include "observatory_identity.h"
+ #include "relay_map.h"
+ #include "roof_control.h"
+ #include "operator_policy.h"
+@@ -512,9 +513,7 @@
+ #ifndef USE_OTA
+   #define USE_OTA 0
+ #endif
+-#ifndef OTA_HOSTNAME
+-  #define OTA_HOSTNAME "obserwatorium-roof"
+-#endif
++// Hostname is defined centrally in observatory.ini.
+ #ifndef OTA_PASSWORD
+   #define OTA_PASSWORD ""
+ #endif
+@@ -3270,9 +3269,10 @@
+ #endif
+ 
+   // URL-encode message (prosta wersja - tylko spacje i podstawowe znaki)
++  const String branded = observatoryMessage(msg);
+   String encoded = "";
+-  for (int i = 0; i < (int)msg.length(); i++) {
+-    char c = msg[i];
++  for (int i = 0; i < (int)branded.length(); i++) {
++    char c = branded[i];
+     if (c == ' ') encoded += '+';
+     else if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+              (c >= '0' && c <= '9') || c == '-' || c == '_' ||
+@@ -4917,7 +4917,7 @@
+   uint32_t epoch;
+   char level[10];
+   char category[16];
+-  char text[160];
++  char text[160 + sizeof(OBSERVATORY_PREFIX)];
+ };
+ 
+ static EventLogEntry g_eventLog[EVENT_LOG_SIZE];
+@@ -4944,7 +4944,7 @@
+   e.epoch = (nowEpoch > 1700000000) ? (uint32_t)nowEpoch : 0;
+   strncpy(e.level, eventLevelName(level), sizeof(e.level)-1); e.level[sizeof(e.level)-1] = 0;
+   strncpy(e.category, category ? category : "SYSTEM", sizeof(e.category)-1); e.category[sizeof(e.category)-1] = 0;
+-  strncpy(e.text, text ? text : "", sizeof(e.text)-1); e.text[sizeof(e.text)-1] = 0;
++  observatoryCopyMessage(e.text, sizeof(e.text), text);
+   eventLogSanitize(e.level);
+   eventLogSanitize(e.category);
+   eventLogSanitize(e.text);
+@@ -5101,7 +5101,7 @@
+ static String buildEventLogHtml() {
+   String out; out.reserve(36000);
+   out += F("<!doctype html><html lang='pl'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+-            "<title>ASTRO-ROOF SAFE - PRO EVENT LOG</title><style>"
++            "<title>" OBSERVATORY_NAME " - ASTRO-ROOF SAFE - PRO EVENT LOG</title><style>"
+             "body{margin:0;background:#0b0e12;color:#dfe7ef;font-family:Arial,sans-serif}"
+             ".top{padding:18px 22px;background:#11161d;border-bottom:1px solid #27313c;position:sticky;top:0;z-index:2}"
+             "h1{margin:0 0 8px;font-size:22px}.sub{color:#8795a5;font-size:12px}"
+@@ -5111,7 +5111,7 @@
+             ".head{color:#8190a0;background:#10151b;position:sticky;top:119px}.INFO{color:#cbd5df}.WARN{color:#ffd166;background:#2b2411}.ERROR{color:#ff9b8d;background:#2c1513}.CRITICAL{color:#fff;background:#4a1111;font-weight:700}"
+             ".lvl{font-weight:700}.empty{padding:30px;color:#7d8996}.foot{padding:16px 22px;color:#657381;font-size:11px}"
+             "@media(max-width:800px){.row{grid-template-columns:120px 65px 80px 1fr;font-size:11px}.head{top:145px}}"
+-            "</style></head><body><div class='top'><h1>ASTRO-ROOF SAFE — PRO EVENT LOG</h1>"
++            "</style></head><body><div class='top'><h1>" OBSERVATORY_NAME " — ASTRO-ROOF SAFE · LOG</h1>"
+             "<div class='sub'>Czarna skrzynka obserwatorium • RAM + LittleFS • log nie steruje bezpieczenstwem</div>"
+             "<div class='bar'><button class='btn' onclick='loadLog()'>↻ Odśwież</button><button class='btn' onclick='toggleAuto()' id='auto'>⏸ Auto: ON</button><button class='btn' onclick=\"location.href='/api/log'\">JSON</button>"
+             "<select class='sel' id='filter' onchange='render()'><option value='ALL'>Wszystkie</option><option>INFO</option><option>WARN</option><option>ERROR</option><option>CRITICAL</option></select>"
+@@ -5610,12 +5610,12 @@
+   }
+   if (method == "GET" && pl == "/management/v1/configureddevices") {
+     alpacaSendValue(c, cid,
+-      "[{\"DeviceName\":\"ESP32 Weather Safety\",\"DeviceType\":\"SafetyMonitor\",\"DeviceNumber\":0,"
+-      "\"UniqueID\":\"ESP32-SM-0\",\"DriverVersion\":\"1.0\",\"Description\":\"MLX+RG11+Wiatr\",\"SupportedActions\":[]},"
+-      "{\"DeviceName\":\"ESP32 Weather Conditions\",\"DeviceType\":\"ObservingConditions\",\"DeviceNumber\":0,"
+-      "\"UniqueID\":\"ESP32-OC-0\",\"DriverVersion\":\"1.0\",\"Description\":\"MLX+DHT+BMP+DS18\",\"SupportedActions\":[]},"
+-      "{\"DeviceName\":\"ESP32 Roof Dome\",\"DeviceType\":\"Dome\",\"DeviceNumber\":0,"
+-      "\"UniqueID\":\"ESP32-DOME-0\",\"DriverVersion\":\"1.0\",\"Description\":\"Roll-off roof\",\"SupportedActions\":[\"RoofPosition\",\"RoofState\"]}]");
++      "[{\"DeviceName\":\"" OBSERVATORY_NAME " - ESP32 Weather Safety\",\"DeviceType\":\"SafetyMonitor\",\"DeviceNumber\":0,"
++      "\"UniqueID\":\"ESP32-SM-0\",\"DriverVersion\":\"1.0\",\"Description\":\"" OBSERVATORY_NAME " - MLX+RG11+Wiatr\",\"SupportedActions\":[]},"
++      "{\"DeviceName\":\"" OBSERVATORY_NAME " - ESP32 Weather Conditions\",\"DeviceType\":\"ObservingConditions\",\"DeviceNumber\":0,"
++      "\"UniqueID\":\"ESP32-OC-0\",\"DriverVersion\":\"1.0\",\"Description\":\"" OBSERVATORY_NAME " - MLX+DHT+BMP+DS18\",\"SupportedActions\":[]},"
++      "{\"DeviceName\":\"" OBSERVATORY_NAME " - ESP32 Roof Dome\",\"DeviceType\":\"Dome\",\"DeviceNumber\":0,"
++      "\"UniqueID\":\"ESP32-DOME-0\",\"DriverVersion\":\"1.0\",\"Description\":\"" OBSERVATORY_NAME " - Roll-off roof\",\"SupportedActions\":[\"RoofPosition\",\"RoofState\"]}]");
+     c.stop(); return;
+   }
+ 
+@@ -5647,8 +5647,8 @@
+   // SafetyMonitor
+   if (base.startsWith("safetymonitor/0/")) {
+     String member = base.substring(16);
+-    if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote("ESP32 Weather Safety")); }
+-    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("Safety: MLX90614, RG11, wind")); }
++    if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ESP32 Weather Safety")); }
++    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - Safety: MLX90614, RG11, wind")); }
+     else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 SafetyMonitor")); }
+     else if (member == "driverversion" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("1.0")); }
+     else if (member == "interfaceversion" && method == "GET") { alpacaSendValue(c, cid, "3"); }
+@@ -5685,8 +5685,8 @@
+   // ObservingConditions
+   if (base.startsWith("observingconditions/0/")) {
+     String member = base.substring(22);
+-    if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote("ESP32 Weather Conditions")); }
+-    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("MLX90614, BME280, RG11, wind")); }
++    if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ESP32 Weather Conditions")); }
++    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - MLX90614, BME280, RG11, wind")); }
+     else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 ObservingConditions")); }
+     else if (member == "driverversion" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("1.0")); }
+     else if (member == "interfaceversion" && method == "GET") { alpacaSendValue(c, cid, "3"); }
+@@ -5772,8 +5772,8 @@
+   // Dome
+   if (base.startsWith("dome/0/")) {
+     String member = base.substring(7);
+-    if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote("ESP32 Roof Dome")); }
+-    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 roll-off roof")); }
++    if (member == "name" && method == "GET")        { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ESP32 Roof Dome")); }
++    else if (member == "description" && method == "GET") { alpacaSendValue(c, cid, jsonQuote(OBSERVATORY_NAME " - ASTRO-ROOF SAFE RC5.2 TEMP3 roll-off roof")); }
+     else if (member == "driverinfo" && method == "GET")  { alpacaSendValue(c, cid, jsonQuote("ASTRO-ROOF SAFE RC5.2 TEMP3 Dome")); }
+     else if (member == "driverversion" && method == "GET") { alpacaSendValue(c, cid, jsonQuote("1.0")); }
+     else if (member == "interfaceversion" && method == "GET") { alpacaSendValue(c, cid, "2"); }
+@@ -5864,7 +5864,7 @@
+     Serial.println(F("[OTA] WYLACZONE: brak hasla. Ustaw -D OTA_PASSWORD=... w platformio.ini."));
+     return;
+   }
+-  ArduinoOTA.setHostname(OTA_HOSTNAME);
++  ArduinoOTA.setHostname(OBSERVATORY_HOSTNAME);
+   ArduinoOTA.setPassword(OTA_PASSWORD);
+   ArduinoOTA.onStart([]() {
+     g_otaActive = true;
+@@ -5893,7 +5893,7 @@
+   });
+   ArduinoOTA.begin();
+   g_otaReady = true;
+-  Serial.printf("[OTA] Bezpieczne OTA WLACZONE | host=%s (haslo wymagane)\n", OTA_HOSTNAME);
++  Serial.printf("[OTA] Bezpieczne OTA WLACZONE | host=%s (haslo wymagane)\n", OBSERVATORY_HOSTNAME);
+ #endif
+ }
+ 
+@@ -6158,6 +6158,7 @@
+   // WiFi
+ #if USE_WIFI
+   Serial.println(F("Init WiFi..."));
++  WiFi.setHostname(OBSERVATORY_HOSTNAME);
+   WiFi.mode(WIFI_STA);
+   WiFi.setSleep(false);   // modem-sleep OFF - stabilniejszy zapas (TLS/UI po WiFi bez czkawki)
+   WiFi.begin(WIFI_SSID_C, WIFI_PASS_C);
+--- before/src/web_ui.h
++++ Specula/src/web_ui.h
+@@ -1,9 +1,10 @@
+ #pragma once
++#include "observatory_identity.h"
+ static const char INDEX_HTML[] = R"HTML(<!DOCTYPE html><html lang="pl"><head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#02040c">
+-<title>Obserwatorium </title>
++<title>)HTML" OBSERVATORY_NAME R"HTML( — ASTRO-ROOF SAFE</title>
+ <style>
+ /* ══ ASTRO-ROOF SAFE · UI · deep-space instrument panel ══ */
+ :root{
+@@ -484,6 +485,10 @@
+ .manual-error{color:#ffb4a5;min-height:1.5em;white-space:pre-wrap}
+ .control-policy{line-height:1.5;color:#b6c9d6;margin:10px 0}
+ 
++.logo-text{text-transform:uppercase;overflow-wrap:anywhere}
++.observatory-subtitle{font-size:12px;line-height:1.6;color:#bed1df}
++.observatory-system{font-size:10px;letter-spacing:1.5px;font-weight:800;color:#7edbd0;margin:3px 0 6px}
++@media(max-width:600px){.logo-text{font-size:21px}.observatory-subtitle{font-size:11px}}
+ /* UI 2026-11-03: presentation only; IDs, controls, status meanings and order retained. */
+ body,button,input,select,summary{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+ :root{--bg:#080f1a;--card:#101e2c;--card2:#142638;--line:#263b4e;--line2:#3f6078;--txt:#e7eff7;--tit:#f7fbff;--mut:#a7b8c9;--info:#69dfcf;--ok:#45dfa9;--warn:#ffcf79;--bad:#ff7a89;--font-head:'Segoe UI',system-ui,sans-serif}
+@@ -536,7 +541,9 @@
+   <div class="logo">
+     <div class="logo-icon">🔭</div>
+     <div>
+-      <div class="logo-text">Obserwatorium </div>
++      <div class="logo-text">)HTML" OBSERVATORY_NAME R"HTML(</div>
++      <div class="observatory-subtitle">Obserwatorium zdalne · Podkarpacie</div>
++      <div class="observatory-system">ASTRO-ROOF SAFE</div>
+       <div class="logo-hw">SPRZET: WAVESHARE ESP32-S3-POE-ETH-8DI-8DO | DACH: WAVESHARE 17658 MODBUS/RS485</div>
+       <div class="logo-sub" id="netText">Łączenie...</div>
+       <div class="logo-clock" id="clockText">Zegar: sprawdzam RTC...</div>
+--- before/src/online_notifications.h
++++ Specula/src/online_notifications.h
+@@ -25,7 +25,7 @@
+  bool enabled=false,configured=false,compiled=false,inflight=false,hasOK=false,hasTry=false;
+  uint32_t lastOK=0,lastTry=0,okCount=0,failed=0,dropped=0;int error=0;
+ };
+-struct OnlineJob {uint8_t channel=0,attempt=0;bool emergency=false;uint32_t created=0,due=0;char text[300]={};};
++struct OnlineJob {uint8_t channel=0,attempt=0;bool emergency=false;uint32_t created=0,due=0;char text[300 + sizeof(OBSERVATORY_PREFIX)]={};};
+ struct OnlineResult {uint8_t channel;int code;bool ok;};
+ static portMUX_TYPE g_onlineMux=portMUX_INITIALIZER_UNLOCKED;
+ static OnlineStatus g_onlineStatus[3];
+@@ -127,7 +127,7 @@
+   OnlineHttpReply r;
+   bool ok=false;
+   if(j.channel==ONLINE_PUSHOVER){
+-   String body=String("token=")+onlineEncode(PUSHOVER_APP_TOKEN)+"&user="+onlineEncode(PUSHOVER_USER_KEY)+"&title=ASTRO-ROOF%20SAFE&message="+onlineEncode(j.text)+"&priority="+(j.emergency?"2":"0");
++   String body=String("token=")+onlineEncode(PUSHOVER_APP_TOKEN)+"&user="+onlineEncode(PUSHOVER_USER_KEY)+"&title="+onlineEncode(String(OBSERVATORY_PREFIX " ASTRO-ROOF SAFE"))+"&message="+onlineEncode(j.text)+"&priority="+(j.emergency?"2":"0");
+    if(j.emergency)body+="&retry="+String(PUSHOVER_RETRY_SEC)+"&expire="+String(PUSHOVER_EXPIRE_SEC);
+    r=onlineRequest("api.pushover.net","/1/messages.json",body,false);
+    StaticJsonDocument<1400> doc;
+@@ -154,7 +154,7 @@
+  if(channel>2||!g_onlineJobs||!onlineEnabled(channel))return false;
+  bool configured;portENTER_CRITICAL(&g_onlineMux);configured=g_onlineStatus[channel].configured;portEXIT_CRITICAL(&g_onlineMux);
+  if(!configured){onlineRecord(channel,false,-5);return false;}
+- OnlineJob j;j.channel=channel;j.emergency=emergency;j.created=millis();j.due=millis();strlcpy(j.text,text,sizeof(j.text));
++ OnlineJob j;j.channel=channel;j.emergency=emergency;j.created=millis();j.due=millis();if(channel==ONLINE_PUSHOVER) observatoryCopyMessage(j.text,sizeof(j.text),text); else strlcpy(j.text,text,sizeof(j.text));
+  if(xQueueSend(g_onlineJobs,&j,0)!=pdTRUE){onlineDrop(channel);return false;}return true;
+ }
+ static void onlineCritical(const char* title,const char* message){
+--- before/src/obs_notify.h
++++ Specula/src/obs_notify.h
+@@ -514,7 +514,7 @@
+ void notifyClearAlarm()       { g_alarmLatched = false; alarmWrite(false); }
+ 
+ void notifyEvent(NotifyLevel level, const char* title, const char* msg) {
+-  String full = String("[") + title + "] " + msg;
++  String full = observatoryMessage(String("[") + title + "] " + msg);
+   mqttQueueAlert(full);
+ #if NOTIFY_DEBUG
+   Serial.print(F("[NOTIFY] L")); Serial.print((int)level); Serial.print(F(" ")); Serial.println(full);
+--- before/secrets.ini.example
++++ Specula/secrets.ini.example
+@@ -6,7 +6,7 @@
+ TELEGRAM_TOKEN =
+ TELEGRAM_CHAT_ID =
+ PARK_ALPACA_HOST =
+-OTA_HOSTNAME = astro-roof
++; OTA hostname is defined in observatory.ini (legacy OTA_HOSTNAME is ignored).
+ OTA_PASSWORD =
+ MQTT_HOST =
+ MQTT_USER =

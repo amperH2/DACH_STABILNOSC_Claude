@@ -1,0 +1,12 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const s=fs.readFileSync(path.join(__dirname,'../src/web_ui.h'),'utf8');
+const a=s.indexOf('function faultRecoveryView('),b=s.indexOf('function renderFaultRecovery(',a);
+const view=new Function(s.slice(a,b)+';return faultRecoveryView;')();
+const base={manual_mode:true,manual_authorized:true,park_ra:true,park_dec:true,park_hw_stable:true,roof:{state:'ERROR',fault_class:'PARK_LOST',limit_closed:false,limit_open:false,stop_command_confirmed:true,stop_release_confirmed:true}};
+assert.equal(view(base).enabled,true);
+for(const key of ['manual_mode','manual_authorized','park_ra','park_dec','park_hw_stable'])assert.equal(view({...base,[key]:false}).enabled,false,key);
+for(const cls of ['PHYSICAL','STOP_UNCONFIRMED','NONE'])assert.equal(view({...base,roof:{...base.roof,fault_class:cls}}).visible,false);
+assert.equal(view({...base,roof:{...base.roof,fault_class:'COMMUNICATION'}}).enabled,true);
+assert.equal(view({...base,roof:{...base.roof,stop_command_confirmed:false}}).enabled,false);
+assert.equal(view({...base,roof:{...base.roof,limit_closed:true,limit_open:true}}).enabled,false);
+console.log('PASS PARK recovery UI: authorized MANUAL, stable RA/DEC, STOP, conflicting limits, hidden unrecoverable faults');

@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-05",
+  "verified": true,
+  "port": "COM3",
+  "html_bytes": 143522,
+  "html_sha256": "c3b0aeda104f83641e364449acf30733e4ceb38859c34e97e7fc31efa7162d50",
+  "live_html_matches_source": true,
+  "alpaca_names_and_descriptions_verified": true,
+  "alpaca_identifiers_unchanged": true,
+  "event_prefix_verified": true,
+  "event_count_checked": 12,
+  "roof": "CLOSED",
+  "motion_fault": "",
+  "firmware": "ASTRO-ROOF SAFE | Specula Carpathia | SAFE-RECOVERY-20261105",
+  "uptime_s": 26,
+  "no_manual_notification_tests": true,
+  "no_roof_motion_commands": true,
+  "post_startup_uptime_s": 99,
+  "post_startup_wind": "OK",
+  "post_startup_roof": "CLOSED"
+}

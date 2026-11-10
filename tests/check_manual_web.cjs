@@ -1,0 +1,20 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const source=fs.readFileSync(path.join(__dirname,'../src/web_ui.h'),'utf8');
+new Function(source.slice(source.indexOf('<script>')+8,source.indexOf('</script>')));
+const start=source.indexOf('async function cmd(a){'),end=source.indexOf('async function setManual(',start);
+const make=new Function('lastRoofState','confirm','prompt','setManual','commandFetch','refresh','toast','URLSearchParams',source.slice(start,end)+';return cmd;');
+let calls=[],warnings=[],accepted=true,password='private',reauth=0;
+const fetch=async(url,options)=>{calls.push({url,body:new URLSearchParams(options.body)});return {ok:true}};
+const ask=text=>{warnings.push(text);return accepted};const noop=()=>{};
+(async()=>{
+ const manual=make({manual_mode:true,manual_authorized:true,safe:false,reason:'DESZCZ',safety_ext:{nina_active:false}},ask,()=>password,()=>reauth++,fetch,noop,noop,URLSearchParams);
+ await manual('open');let call=calls.at(-1);assert.equal(call.url,'/cmd');assert.equal(call.body.get('manual_pass'),'private');assert.equal(call.body.get('confirm'),'MANUAL_MOVE');assert(warnings.at(-1).includes('DESZCZ'));assert(warnings.at(-1).includes('NINA nieaktywna'));
+ accepted=false;let before=calls.length;await manual('close');assert.equal(calls.length,before);
+ accepted=true;password=null;await manual('open');assert.equal(calls.length,before);
+ const warningCount=warnings.length;await manual('stop');assert.equal(warnings.length,warningCount);assert.equal(calls.at(-1).body.get('do'),'stop');assert(!calls.at(-1).body.has('manual_pass'));
+ const locked=make({manual_mode:true,manual_authorized:false},ask,()=>password,()=>reauth++,fetch,noop,noop,URLSearchParams);before=calls.length;await locked('open');assert.equal(reauth,1);assert.equal(calls.length,before);
+ const auto=make({manual_mode:false,safe:true},ask,()=>password,noop,fetch,noop,noop,URLSearchParams);await auto('open');assert(!calls.at(-1).body.has('confirm'));
+ assert(source.includes("$('btnStop').disabled=!st.roof_motion_enabled;"));assert(!source.includes('manualMinutes'));assert(!source.includes('Powrót AUTO za'));
+ assert(source.includes('INSPECTED_STATIONARY'));assert(source.includes('INSPECTED_MOUNT'));
+ console.log('MANUAL WWW PASS: password stays in POST body; cancellation, locked restart, STOP, persistent UI, inspection reset forms');
+})().catch(e=>{console.error(e);process.exitCode=1});

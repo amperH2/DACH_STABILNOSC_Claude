@@ -1,0 +1,20 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const source=fs.readFileSync(path.join(__dirname,'../src/web_ui.h'),'utf8');
+let calls=[],messages=[],accept=true,password='secret',ok=true,unlock=0;
+const fetch=async(url,options={})=>{calls.push({url,body:new URLSearchParams(options.body||'')});return {ok,json:async()=>({ok,error:ok?'':'Niepotwierdzone wyjście'})}};
+const state={manual_mode:true,manual_authorized:true,roof:{state:'ERROR',fault_class:'COMMUNICATION',stop_command_confirmed:true,stop_release_confirmed:true,limit_open:true,limit_closed:false}};
+const start=source.indexOf('async function mountEstop(){'),end=source.indexOf('async function restartController(){',start);
+const make=new Function('lastRoofState','confirm','prompt','commandFetch','refresh','toast','setManual','URLSearchParams',source.slice(start,end)+';return {cut:mountEstop,restore:estopReset};');
+const actions=make(state,()=>accept,()=>password,fetch,async()=>{},m=>messages.push(m),async()=>unlock++,URLSearchParams);
+const ackStart=source.indexOf('let faultAckBusy=false;'),ackEnd=source.indexOf('async function cmd(a){',ackStart);
+const ack=new Function('lastRoofState','$','confirm','prompt','commandFetch','refresh','toast','URLSearchParams',source.slice(ackStart,ackEnd)+';return ackFault;')(state,()=>null,()=>accept,()=>password,fetch,async()=>{},m=>messages.push(m),URLSearchParams);
+(async()=>{
+ ok=false;await actions.cut();assert(messages.at(-1).includes('Niepotwierdzone'));
+ state.manual_authorized=false;let before=calls.length;await actions.restore();assert.equal(unlock,1);assert.equal(calls.length,before);
+ state.manual_authorized=true;accept=false;await actions.restore();assert.equal(calls.length,before);
+ accept=true;password=null;await actions.restore();assert.equal(calls.length,before);
+ password='secret';ok=true;await actions.restore();assert.equal(calls.at(-1).url,'/cmd');assert.equal(calls.at(-1).body.get('confirm'),'INSPECTED_MOUNT');assert.equal(calls.at(-1).body.get('manual_pass'),'secret');
+ await ack();assert.equal(calls.at(-1).body.get('confirm'),'INSPECTED_STATIONARY');assert.equal(calls.at(-1).body.get('manual_pass'),'secret');
+ state.roof.stop_release_confirmed=false;before=calls.length;await ack();assert.equal(calls.length,before);
+ console.log('Protected actions PASS: cut failure reported, restore authorization/cancel/password, open-roof communication ACK and missing STOP-release gate');
+})().catch(e=>{console.error(e);process.exitCode=1});

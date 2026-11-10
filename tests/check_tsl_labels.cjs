@@ -1,0 +1,12 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const s=fs.readFileSync(path.join(__dirname,'../src/web_ui.h'),'utf8');
+const fn=s.match(/function tslStatusFor\(lux\)\{[\s\S]*?\n\}/)[0];
+const evaluate=new Function('isNum',fn+';return tslStatusFor;')(v=>typeof v==='number'&&Number.isFinite(v));
+for(const [lux,label] of [[0,'Bardzo ciemno'],[0.001,'Bardzo ciemno'],[0.01,'Ciemno'],[0.299,'Ciemno'],[0.3,'Umiarkowane oświetlenie'],[49.99,'Umiarkowane oświetlenie'],[50,'Jasno'],[999,'Jasno'],[1000,'Bardzo jasno']]) assert.equal(evaluate(lux).txt,label);
+for(const v of [null,undefined,NaN,'12'])assert.equal(evaluate(v).txt,'Brak danych');
+assert.deepEqual([...fn.matchAll(/lux<([\d.]+)/g)].map(m=>Number(m[1])),[0.001,0.01,0.3,50,1000]);
+for(const text of ['💡 Natężenie oświetlenia (TSL2591)','Kanał szerokopasmowy (VIS + IR)','Kanał podczerwieni (IR)','Pomiar natężenia oświetlenia. Nie jest to pomiar SQM ani ocena w skali Bortle’a.'])assert.ok(s.includes(text),text);
+assert.equal((s.match(/Surowy odczyt — nie lx/g)||[]).length,2);
+for(const obsolete of ['Jakość nieba — SQM','Świt lub zmierzch cywilny','Zmierzch astronomiczny / Księżyc','Bezksiężycowa ciemność','Pełne spektrum'])assert.ok(!s.includes(obsolete),obsolete);
+assert.ok(s.includes('<div class="sqm-lux-unit">lx</div>'));
+console.log('PASS neutral TSL labels, unchanged boundaries, raw channels and lx unit');

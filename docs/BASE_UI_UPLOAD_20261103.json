@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-03",
+  "verified": true,
+  "port": "COM3",
+  "live_html_matches_source": true,
+  "html_bytes": 142806,
+  "read_and_state_seconds": 0.625,
+  "roof_state": "CLOSED",
+  "motion_fault": "",
+  "uptime_s": 9,
+  "html_sha256": "8efd83ce83d30f8c1531a4645ce0c531d75899f2136dacf846daf87edac0ad21",
+  "no_roof_motion_command_sent": true,
+  "post_startup_wind": "OK",
+  "post_startup_roof": "CLOSED",
+  "post_startup_uptime_s": 78
+}

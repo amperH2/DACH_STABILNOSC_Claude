@@ -1,0 +1,1 @@
+Zmiana tylko widocznych nazw WWW/Alpaca. FW_VERSION, pole API fw, identyfikatory i endpointy niezmienione. Pelna wersja pozostaje w diagnostyce i logu startowym. Nie wgrano na ESP32. Nie zmieniono skryptow PC.

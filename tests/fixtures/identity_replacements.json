@@ -1,0 +1,78 @@
+[
+  [
+    "jsonQuote(OBSERVATORY_NAME \" - ESP32 Weather Safety\")",
+    "jsonQuote(\"ESP32 Weather Safety\")"
+  ],
+  [
+    "jsonQuote(OBSERVATORY_NAME \" - ESP32 Weather Conditions\")",
+    "jsonQuote(\"ESP32 Weather Conditions\")"
+  ],
+  [
+    "jsonQuote(OBSERVATORY_NAME \" - ESP32 Roof Dome\")",
+    "jsonQuote(\"ESP32 Roof Dome\")"
+  ],
+  [
+    "jsonQuote(OBSERVATORY_NAME \" - Safety: MLX90614, RG11, wind\")",
+    "jsonQuote(\"Safety: MLX90614, RG11, wind\")"
+  ],
+  [
+    "jsonQuote(OBSERVATORY_NAME \" - MLX90614, BME280, RG11, wind\")",
+    "jsonQuote(\"MLX90614, BME280, RG11, wind\")"
+  ],
+  [
+    "jsonQuote(OBSERVATORY_NAME \" - ASTRO-ROOF SAFE RC5.2 TEMP3 roll-off roof\")",
+    "jsonQuote(\"ASTRO-ROOF SAFE RC5.2 TEMP3 roll-off roof\")"
+  ],
+  [
+    "\\\"\" OBSERVATORY_NAME \" - ESP32 Weather Safety\\\"",
+    "\\\"ESP32 Weather Safety\\\""
+  ],
+  [
+    "\\\"\" OBSERVATORY_NAME \" - ESP32 Weather Conditions\\\"",
+    "\\\"ESP32 Weather Conditions\\\""
+  ],
+  [
+    "\\\"\" OBSERVATORY_NAME \" - ESP32 Roof Dome\\\"",
+    "\\\"ESP32 Roof Dome\\\""
+  ],
+  [
+    "\\\"\" OBSERVATORY_NAME \" - MLX+RG11+Wiatr\\\"",
+    "\\\"MLX+RG11+Wiatr\\\""
+  ],
+  [
+    "\\\"\" OBSERVATORY_NAME \" - MLX+DHT+BMP+DS18\\\"",
+    "\\\"MLX+DHT+BMP+DS18\\\""
+  ],
+  [
+    "\\\"\" OBSERVATORY_NAME \" - Roll-off roof\\\"",
+    "\\\"Roll-off roof\\\""
+  ],
+  [
+    "  WiFi.setHostname(OBSERVATORY_HOSTNAME);\n",
+    ""
+  ],
+  [
+    "ArduinoOTA.setHostname(OBSERVATORY_HOSTNAME);",
+    "ArduinoOTA.setHostname(OTA_HOSTNAME);"
+  ],
+  [
+    "OBSERVATORY_HOSTNAME);",
+    "OTA_HOSTNAME);"
+  ],
+  [
+    "  observatoryCopyMessage(e.text, sizeof(e.text), text);",
+    "  strncpy(e.text, text ? text : \"\", sizeof(e.text)-1); e.text[sizeof(e.text)-1] = 0;"
+  ],
+  [
+    "  const String branded = observatoryMessage(msg);\n  String encoded = \"\";\n  for (int i = 0; i < (int)branded.length(); i++) {\n    char c = branded[i];",
+    "  String encoded = \"\";\n  for (int i = 0; i < (int)msg.length(); i++) {\n    char c = msg[i];"
+  ],
+  [
+    "<title>\" OBSERVATORY_NAME \" - ASTRO-ROOF SAFE - PRO EVENT LOG</title>",
+    "<title>ASTRO-ROOF SAFE - PRO EVENT LOG</title>"
+  ],
+  [
+    "<h1>\" OBSERVATORY_NAME \" — ASTRO-ROOF SAFE · LOG</h1>",
+    "<h1>ASTRO-ROOF SAFE — PRO EVENT LOG</h1>"
+  ]
+]

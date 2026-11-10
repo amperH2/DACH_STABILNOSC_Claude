@@ -1,0 +1,34 @@
+[
+  {
+    "viewport": 320,
+    "scroll": 291,
+    "width": 291,
+    "title": "SPECULA CARPATHIA",
+    "transform": "uppercase",
+    "subtitle": "Obserwatorium zdalne · Podkarpacie"
+  },
+  {
+    "viewport": 390,
+    "scroll": 336,
+    "width": 336,
+    "title": "SPECULA CARPATHIA",
+    "transform": "uppercase",
+    "subtitle": "Obserwatorium zdalne · Podkarpacie"
+  },
+  {
+    "viewport": 430,
+    "scroll": 376,
+    "width": 376,
+    "title": "SPECULA CARPATHIA",
+    "transform": "uppercase",
+    "subtitle": "Obserwatorium zdalne · Podkarpacie"
+  },
+  {
+    "viewport": 1440,
+    "scroll": 445,
+    "width": 445,
+    "title": "SPECULA CARPATHIA",
+    "transform": "uppercase",
+    "subtitle": "Obserwatorium zdalne · Podkarpacie"
+  }
+]

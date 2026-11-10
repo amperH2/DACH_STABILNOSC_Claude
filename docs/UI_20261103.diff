@@ -1,0 +1,157 @@
+--- przed/src/web_ui.h
++++ WWW_20261103/src/web_ui.h
+@@ -338,7 +338,7 @@
+ }
+ 
+ /* ══════════════════════════════════════════════════════════════════════
+-   KARTA "JAKOSC NIEBA" (TSL2591 / SQM) — wlasny gauge, poza siatka
++   KARTA "NATEZENIE OSWIETLENIA" (TSL2591) — wlasny gauge, poza siatka
+    ══════════════════════════════════════════════════════════════════════ */
+ .sqm-card{animation:riseIn .62s cubic-bezier(.2,.7,.3,1) both;animation-delay:.12s}
+ .sqm-main{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:8px 0 16px}
+@@ -359,9 +359,13 @@
+ .sqm-raw{display:flex;gap:10px;margin-top:14px}
+ .sqm-raw-item{flex:1;display:flex;justify-content:space-between;align-items:center;padding:9px 13px;
+   border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.02);font-size:13px}
+-.sqm-raw-item span{color:var(--mut)}
++.sqm-raw-item span{color:var(--mut);min-width:0;line-height:1.45}
++.sqm-raw-item{gap:12px;min-width:0}
++.sqm-raw-item small{display:block;font-size:11px;margin-top:3px}
++.sqm-raw-item b{flex-shrink:0}
++.tsl-note{font-size:12px;line-height:1.5;color:var(--mut);margin:12px 0 0}
+ .sqm-raw-item b{font-family:var(--font-head);font-size:15px}
+-@media(max-width:600px){.sqm-lux{font-size:34px}.sqm-status{font-size:12px}}
++@media(max-width:600px){.sqm-lux{font-size:34px}.sqm-status{font-size:12px}.sqm-raw{flex-direction:column}.sqm-status{white-space:normal}}
+ 
+ /* v17.8 dashboard refresh: calmer contrast, cleaner cards, clearer states */
+ :root{
+@@ -479,6 +483,50 @@
+ .manual-dialog .manual-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:20px}
+ .manual-error{color:#ffb4a5;min-height:1.5em;white-space:pre-wrap}
+ .control-policy{line-height:1.5;color:#b6c9d6;margin:10px 0}
++
++/* UI 2026-11-03: presentation only; IDs, controls, status meanings and order retained. */
++body,button,input,select,summary{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
++:root{--bg:#080f1a;--card:#101e2c;--card2:#142638;--line:#263b4e;--line2:#3f6078;--txt:#e7eff7;--tit:#f7fbff;--mut:#a7b8c9;--info:#69dfcf;--ok:#45dfa9;--warn:#ffcf79;--bad:#ff7a89;--font-head:'Segoe UI',system-ui,sans-serif}
++body{background:radial-gradient(ellipse at 8% 0%,#123340 0%,transparent 42%),radial-gradient(ellipse at 95% 20%,#18233e 0%,transparent 48%),#080f1a;background-attachment:fixed;color:var(--txt)}
++.app{width:min(1420px,100%);padding:20px;gap:16px}
++.topbar{padding:20px 22px;border:1px solid #355364;border-radius:22px;background:linear-gradient(120deg,#142d3a,#101c2e);box-shadow:0 16px 48px #0004;gap:22px}
++.logo-icon{width:50px;height:50px;border-radius:16px;background:#183e48;border:1px solid #41847f;font-size:27px}
++.logo-text{font-size:25px;letter-spacing:-.7px;color:#f6fbff}
++.logo-text::before{content:'PANEL OBSERWATORIUM';display:block;font-size:9px;letter-spacing:2.3px;font-weight:800;color:#7edbd0;margin-bottom:5px}
++.logo-hw{color:#9cb2c3;font-size:9px;line-height:1.6;max-width:470px}
++.logo-sub,.logo-clock{line-height:1.6;color:#b3c6d6}
++.topbar-right{gap:8px}
++.card{border-radius:20px;padding:18px;background:linear-gradient(155deg,#132535,#101c2a);border:1px solid #2a4054;box-shadow:0 12px 32px #0002;gap:12px}
++.card::before,.card::after{display:none}
++.card:hover{transform:none;border-color:#3a5a70}
++.panel-details>summary{font-size:14px;padding:5px 0;line-height:1.5;letter-spacing:.05px}
++.panel-details[open]>summary{padding-bottom:13px;margin-bottom:12px;border-bottom:1px solid #2b4052}
++.sub-details>summary{font-size:12px;color:#bfd3e3}
++.sky-bar-wrap{border-radius:21px;padding:18px 22px;background:linear-gradient(115deg,#153642,#14293c);border-color:#36586b;box-shadow:0 12px 32px #0002}
++.sky-status{letter-spacing:-.35px}.sky-cells{gap:10px}
++.sky-cell,.metric,.diag-cell,.input-diag-cell,.sqm-raw-item{border:1px solid #2c465b;border-radius:14px;background:#14283a;box-shadow:none}
++.metric{padding:15px;min-height:82px}.metric .k{font-size:10px;letter-spacing:.6px}.metric .v{font-size:28px;letter-spacing:-.7px}
++.diag-cell,.input-diag-cell{padding:12px;line-height:1.5}
++.sqm-lux{font-size:46px;letter-spacing:-1.8px;background:none;color:#f1f8ff}
++.sqm-status{background:#153743;border-color:#3c727c;color:#bdece8}
++.sqm-gauge{height:8px}.sqm-gauge-labels{margin-top:10px}.sqm-raw-item{padding:13px 15px}
++.tsl-note{color:#afc0cf;max-width:65ch}
++.park-overview{background:#0b1925;border:1px solid #2b495d;padding:13px;border-radius:14px;line-height:1.7}
++.roof-svg-wrap{border-radius:17px;background:radial-gradient(ellipse at 50% 20%,#173e55,#0c1a29 80%)}
++.btn-logs,.btn-restart{border-radius:10px;padding:10px 13px;font-size:10px;letter-spacing:.25px;box-shadow:none}
++.btn-logs{background:#193448;border-color:#3d627a;color:#d9edf6}
++.btn-restart{background:#3a2c20;border-color:#806141;color:#ffe0b8}
++.status-chip{padding:8px 10px;border-radius:9px;font-size:9px}
++.btn-manual-on,.btn-manual-off,.safety-pill{border-radius:10px}
++.roof-controls{gap:10px}.roof-controls button{border-radius:12px;min-height:46px;font-size:12px;box-shadow:inset 0 1px 0 #ffffff24}
++.btn-open{background:#245ba0}.btn-close{background:#9b3e53}.btn-stop{background:#f1ba52;color:#211906}
++.btn-hazard{border-radius:12px;min-height:44px;background:#a52f47;border:1px solid #ee7e91;color:#fff}
++.btn-pc,.btn-light,.btn-save,.btn-default,.btn-seed,.btn-forget{border-radius:11px;min-height:40px}
++button:disabled{cursor:not-allowed}button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #79e3d3;outline-offset:3px}
++@media(max-width:980px){.topbar{align-items:flex-start}.topbar-right{justify-content:flex-start}.app{padding:14px;gap:12px}}
++@media(max-width:600px){.app{padding:10px;gap:11px}.topbar{padding:16px;border-radius:18px;gap:14px}.logo-text{font-size:23px}.logo-icon{width:43px;height:43px}.topbar-right{gap:7px}.card{padding:15px;border-radius:17px}.sky-bar-wrap{padding:15px;border-radius:17px}.panel-details>summary{font-size:13px}.sqm-lux{font-size:40px}.metric .v{font-size:25px}.sqm-raw{gap:9px}.diag-grid,.input-diag-grid{gap:8px}.diag-cell,.input-diag-cell{padding:9px}.roof-controls button{min-height:46px}.btn-logs,.btn-restart{padding:10px;font-size:9px}}
++@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
++
+ </style></head>
+ <body>
+ <div class="app">
+@@ -581,9 +629,9 @@
+     </div>
+   </div>
+ 
+-  <!-- JAKOSC NIEBA — SQM (TSL2591) -->
++  <!-- NATEZENIE OSWIETLENIA (TSL2591) -->
+   <div class="card sqm-card" id="sqmCard">
+-    <details class="panel-details" id="panel0"><summary>🌌 Jakość nieba — SQM (TSL2591)</summary>
++    <details class="panel-details" id="panel0"><summary>💡 Natężenie oświetlenia (TSL2591)</summary>
+     <div class="sqm-main">
+       <div class="sqm-lux-wrap">
+         <div class="sqm-lux" id="tslLux">—</div>
+@@ -593,12 +641,13 @@
+     </div>
+     <div class="sqm-gauge-wrap">
+       <div class="sqm-gauge"><div class="sqm-dot" id="sqmDot"></div></div>
+-      <div class="sqm-gauge-labels"><span>🌑 Bardzo ciemno</span><span>🌗 Zmierzch</span><span>☀️ Dzień</span></div>
++      <div class="sqm-gauge-labels"><span>◔ Ciemno</span><span>◑ Umiarkowanie</span><span>● Jasno</span></div>
+     </div>
+     <div class="sqm-raw">
+-      <div class="sqm-raw-item"><span>Pełne spektrum</span><b id="tslFull">—</b></div>
+-      <div class="sqm-raw-item"><span>Podczerwień</span><b id="tslIr">—</b></div>
++      <div class="sqm-raw-item"><span>Kanał szerokopasmowy (VIS + IR)<small>Surowy odczyt — nie lx</small></span><b id="tslFull">—</b></div>
++      <div class="sqm-raw-item"><span>Kanał podczerwieni (IR)<small>Surowy odczyt — nie lx</small></span><b id="tslIr">—</b></div>
+     </div>
++    <p class="tsl-note">Pomiar natężenia oświetlenia. Nie jest to pomiar SQM ani ocena w skali Bortle’a.</p>
+   </details></div>
+ 
+   <!-- THREE PWM HEATERS -->
+@@ -976,10 +1025,8 @@
+ function wClass(w,lim={}){if(!isNum(w))return'';const warn=isNum(lim.wind_warn)?lim.wind_warn:10,limit=isNum(lim.wind_sustained)?lim.wind_sustained:14;if(w>limit)return'bad';if(w>warn)return'warn';return'ok';}
+ function uvClass(u){if(!isNum(u))return'';if(u>7)return'bad';if(u>3)return'warn';return'ok';}
+ 
+-// opisowa ocena jasnosci nieba na podstawie luksow z TSL2591.
+-// UWAGA: to NIE jest skalibrowany SQM (mag/arcsec^2) - to orientacyjne pasma
+-// opisowe, dopoki nie zrobisz kalibracji wzgledem realnego nieba (patrz notatka
+-// w main.cpp przy deklaracji TSL2591).
++// Neutralne pasma natezenia oswietlenia w luksach; nie wyznaczaja
++// rodzaju zmierzchu, SQM ani klasy Bortle. Granice pasm bez zmian.
+ // fix: isFinite(null)===true w JS (klasyczna pulapka!) - trzeba jawnie
+ // odrzucic null/undefined PRZED isFinite, tak jak robi to fmt() gdzie indziej
+ // w tym pliku. Bez tego np. tslStatusFor(null) falszywie "przechodzil" jako
+@@ -988,12 +1035,12 @@
+ function isNum(v){ return v!==null && v!==undefined && typeof v!=='string' && isFinite(v); }
+ function tslStatusFor(lux){
+   if(!isNum(lux)) return {txt:'Brak danych',col:'var(--mut)'};
+-  if(lux<0.001)  return {txt:'Bezksiężycowa ciemność',col:'#8fb8ff'};
+-  if(lux<0.01)   return {txt:'Bardzo ciemne niebo',col:'#63a8ff'};
+-  if(lux<0.3)    return {txt:'Zmierzch astronomiczny / Księżyc',col:'#a6c9ff'};
+-  if(lux<50)     return {txt:'Zmierzch / pochmurna noc',col:'#ffd873'};
+-  if(lux<1000)   return {txt:'Świt lub zmierzch cywilny',col:'#ffb84d'};
+-  return {txt:'Pełne światło dnia',col:'#ffe3a3'};
++  if(lux<0.001)  return {txt:'Bardzo ciemno',col:'#8fb8ff'};
++  if(lux<0.01)   return {txt:'Bardzo ciemno',col:'#63a8ff'};
++  if(lux<0.3)    return {txt:'Ciemno',col:'#a6c9ff'};
++  if(lux<50)     return {txt:'Umiarkowane oświetlenie',col:'#ffd873'};
++  if(lux<1000)   return {txt:'Jasno',col:'#ffb84d'};
++  return {txt:'Bardzo jasno',col:'#ffe3a3'};
+ }
+ // pozycja na gauge - skala logarytmiczna od 0.0001 do 100000 lx (9 dekad)
+ function sqmPercent(lux){
+@@ -1251,7 +1298,7 @@
+   $('lux').textContent=fmt(s.lux,0);
+   $('tExt').textContent=(s.t_ext!==null&&isNum(s.t_ext))?fmt(s.t_ext,1):'BRAK';
+ 
+-  // karta SQM (TSL2591)
++  // karta natezenia oswietlenia (TSL2591)
+   {
+     const tl=s.tsl_lux;
+     $('tslLux').textContent = isNum(tl) ? (tl<1 ? tl.toFixed(4) : (tl<100 ? tl.toFixed(2) : fmt(tl,0))) : '—';
+@@ -1559,7 +1606,7 @@
+   if(ft.ds18b20) h+=diagCell('DS18B20', !!d.ds_ok&&isNum(s.t_ext), f(s.t_ext,'°C'));
+   if(ft.bme280 || ft.bmp280) h+=diagCell('Barometr', !!d.baro_ok&&isNum(s.pressure), (d.baro||'?')+' · '+f(s.pressure,'hPa',0));
+   if(ft.bh1750) h+=diagCell('BH1750', !!d.bh_ok&&isNum(s.lux), f(s.lux,'lx',0));
+-  if(ft.tsl2591) h+=diagCell('TSL2591 (jasność, lx)', !!d.tsl_ok&&isNum(s.tsl_lux), (isNum(s.tsl_lux)?(s.tsl_lux<1?s.tsl_lux.toFixed(4):fmt(s.tsl_lux,1))+' lx':'brak')+(d.tsl_ok?(' · gain '+['1x','25x','428x','9876x'][d.tsl_gain||0]):''));
++  if(ft.tsl2591) h+=diagCell('TSL2591 (natężenie, lx)', !!d.tsl_ok&&isNum(s.tsl_lux), (isNum(s.tsl_lux)?(s.tsl_lux<1?s.tsl_lux.toFixed(4):fmt(s.tsl_lux,1))+' lx':'brak')+(d.tsl_ok?(' · gain '+['1x','25x','428x','9876x'][d.tsl_gain||0]):''));
+   if(ft.si1145) h+=diagCell('SI1145 (UV)', !!d.uv_ok&&isNum(s.uv), f(s.uv,'',1));
+   h+=diagCell('Waveshare 17658 (Modbus)',st.modbus_relay_ok?(st.modbus_relay_readback_current===false?null:true):false,st.modbus_relay_ok?('addr '+(d.modbus_addr||1)+(st.modbus_relay_readback_current===false?' · brak bieżącego FC01':'')):'błąd komunikacji','ODCZYT NIEAKTUALNY');
+   const netOk=null;

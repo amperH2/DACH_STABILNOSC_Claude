@@ -1,0 +1,183 @@
+Processing poe_main (platform: espressif32@6.12.0; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+ASTRO configuration: poe_main; 87 validated hardware options
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (6.12.0) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0) 
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5 
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 49 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit BMP280 Library @ 3.0.0
+|-- Adafruit BusIO @ 1.17.4
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit SI1145 Library @ 1.2.2
+|-- Adafruit TSL2591 Library @ 1.4.5
+|-- Adafruit Unified Sensor @ 1.1.15
+|-- BH1750 @ 1.3.0
+|-- DallasTemperature @ 4.0.6
+|-- DHT sensor library @ 1.4.7
+|-- ESP_SSLClient @ 3.1.3
+|-- OneWire @ 2.3.8
+|-- PubSubClient @ 2.8.0
+|-- ArduinoJson @ 6.21.5
+|-- ArduinoOTA @ 2.0.0
+|-- Ethernet @ 2.0.2-astro.1
+|-- LittleFS @ 2.0.0
+|-- Preferences @ 2.0.0
+|-- SPI @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- WiFiClientSecure @ 2.0.0
+|-- Wire @ 2.0.0
+Building in release mode
+Compiling .pio\build\poe_main\src\main.cpp.o
+src/main.cpp: In function 'void setup()':
+src/main.cpp:6152:77: warning: 'ADC_ATTEN_DB_11' is deprecated [-Wdeprecated-declarations]
+   const esp_adc_cal_value_t windCalType=esp_adc_cal_characterize(ADC_UNIT_1,ADC_ATTEN_DB_11,
+                                                                             ^~~~~~~~~~~~~~~
+In file included from C:/Users/lukas/Documents/Codex/pio-audit/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/driver/include/driver/adc.h:14,
+                 from C:/Users/lukas/Documents/Codex/pio-audit/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_adc_cal/include/esp_adc_cal.h:12,
+                 from src/main.cpp:26:
+C:/Users/lukas/Documents/Codex/pio-audit/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/hal/include/hal/adc_types.h:54:5: note: declared here
+     ADC_ATTEN_DB_11 __attribute__((deprecated)) = ADC_ATTEN_DB_12,  ///<This is deprecated, it behaves the same as `ADC_ATTEN_DB_12`
+     ^~~~~~~~~~~~~~~
+Linking .pio\build\poe_main\firmware.elf
+Retrieving maximum program size .pio\build\poe_main\firmware.elf
+Checking size .pio\build\poe_main\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [===       ]  34.0% (used 111512 bytes from 327680 bytes)
+Flash: [==        ]  19.2% (used 1259133 bytes from 6553600 bytes)
+Building .pio\build\poe_main\firmware.bin with action:
+  "$PYTHONEXE" "$OBJCOPY" --chip esp32s3 elf2image --flash_mode ${__get_board_flash_mode(__env__)} --flash_freq ${__get_board_f_image(__env__)} --flash_size 16MB --elf-sha256-offset 0xb0 -o $TARGET $SOURCES
+Building .pio\build\poe_main\firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 52.90 seconds =========================
+
+Processing eth_8ro_spare (platform: espressif32@6.12.0; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+ASTRO configuration: eth_8ro_spare; 87 validated hardware options
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (6.12.0) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0) 
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5 
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 49 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit BMP280 Library @ 3.0.0
+|-- Adafruit BusIO @ 1.17.4
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit SI1145 Library @ 1.2.2
+|-- Adafruit TSL2591 Library @ 1.4.5
+|-- Adafruit Unified Sensor @ 1.1.15
+|-- BH1750 @ 1.3.0
+|-- DallasTemperature @ 4.0.6
+|-- DHT sensor library @ 1.4.7
+|-- ESP_SSLClient @ 3.1.3
+|-- OneWire @ 2.3.8
+|-- PubSubClient @ 2.8.0
+|-- ArduinoJson @ 6.21.5
+|-- ArduinoOTA @ 2.0.0
+|-- Ethernet @ 2.0.2-astro.1
+|-- LittleFS @ 2.0.0
+|-- Preferences @ 2.0.0
+|-- SPI @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- WiFiClientSecure @ 2.0.0
+|-- Wire @ 2.0.0
+Building in release mode
+Compiling .pio\build\eth_8ro_spare\src\main.cpp.o
+src/main.cpp: In function 'void setup()':
+src/main.cpp:6152:77: warning: 'ADC_ATTEN_DB_11' is deprecated [-Wdeprecated-declarations]
+   const esp_adc_cal_value_t windCalType=esp_adc_cal_characterize(ADC_UNIT_1,ADC_ATTEN_DB_11,
+                                                                             ^~~~~~~~~~~~~~~
+In file included from C:/Users/lukas/Documents/Codex/pio-audit/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/driver/include/driver/adc.h:14,
+                 from C:/Users/lukas/Documents/Codex/pio-audit/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_adc_cal/include/esp_adc_cal.h:12,
+                 from src/main.cpp:26:
+C:/Users/lukas/Documents/Codex/pio-audit/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/hal/include/hal/adc_types.h:54:5: note: declared here
+     ADC_ATTEN_DB_11 __attribute__((deprecated)) = ADC_ATTEN_DB_12,  ///<This is deprecated, it behaves the same as `ADC_ATTEN_DB_12`
+     ^~~~~~~~~~~~~~~
+Linking .pio\build\eth_8ro_spare\firmware.elf
+Retrieving maximum program size .pio\build\eth_8ro_spare\firmware.elf
+Checking size .pio\build\eth_8ro_spare\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [===       ]  34.0% (used 111504 bytes from 327680 bytes)
+Flash: [==        ]  19.2% (used 1257857 bytes from 6553600 bytes)
+Building .pio\build\eth_8ro_spare\firmware.bin with action:
+  "$PYTHONEXE" "$OBJCOPY" --chip esp32s3 elf2image --flash_mode ${__get_board_flash_mode(__env__)} --flash_freq ${__get_board_f_image(__env__)} --flash_size 16MB --elf-sha256-offset 0xb0 -o $TARGET $SOURCES
+Building .pio\build\eth_8ro_spare\firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 42.96 seconds =========================
+
+Processing rs485_service (platform: espressif32@6.12.0; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+ASTRO configuration: rs485_service; 87 validated hardware options
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (6.12.0) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0) 
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5 
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 49 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit BMP280 Library @ 3.0.0
+|-- Adafruit BusIO @ 1.17.4
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit SI1145 Library @ 1.2.2
+|-- Adafruit TSL2591 Library @ 1.4.5
+|-- Adafruit Unified Sensor @ 1.1.15
+|-- BH1750 @ 1.3.0
+|-- DallasTemperature @ 4.0.6
+|-- DHT sensor library @ 1.4.7
+|-- ESP_SSLClient @ 3.1.3
+|-- OneWire @ 2.3.8
+|-- PubSubClient @ 2.8.0
+|-- ArduinoJson @ 6.21.5
+Building in release mode
+Retrieving maximum program size .pio\build\rs485_service\firmware.elf
+Checking size .pio\build\rs485_service\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   5.9% (used 19312 bytes from 327680 bytes)
+Flash: [          ]   4.8% (used 315913 bytes from 6553600 bytes)
+========================= [SUCCESS] Took 18.01 seconds =========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+poe_main       SUCCESS   00:00:52.899
+eth_8ro_spare  SUCCESS   00:00:42.958
+rs485_service  SUCCESS   00:00:18.008
+========================= 3 succeeded in 00:01:53.864 =========================

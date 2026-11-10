@@ -1,0 +1,103 @@
+--- przed/platformio.ini
++++ NETFIX1/platformio.ini
+@@ -28,7 +28,6 @@
+   milesburton/DallasTemperature@4.0.6
+   adafruit/DHT sensor library@1.4.7
+   mobizt/ESP_SSLClient@3.1.3
+-  arduino-libraries/Ethernet@2.0.2
+   paulstoffregen/OneWire@2.3.8
+   knolleary/PubSubClient@2.8.0
+   bblanchon/ArduinoJson@6.21.5
+--- przed/src/main.cpp
++++ NETFIX1/src/main.cpp
+@@ -10,6 +10,10 @@
+ #include "operator_policy.h"
+ #include "reset_breadcrumb.h"
+ #include "http_request.h"
++#include "http_bounded_client.h"
++#if USE_W5500
++#include <AstroEthernetGuard.h>
++#endif
+ #include <esp_system.h>    // esp_reset_reason() - diagnostyka przyczyny restartu
+ #include <string.h>        // memset/strncpy dla TgJob (net-task)
+ #include <Wire.h>
+@@ -50,7 +54,7 @@
+ 
+ // ── Identyfikacja firmware (zeby nie mylic wersji sterownika) ──────────────
+ #ifndef FW_VERSION
+-  #define FW_VERSION "ASTRO-ROOF SAFE RC5.2 operator and roof policy + DH1 TEMP3 joint audit (2026-10-28)"
++  #define FW_VERSION "ASTRO-ROOF SAFE RC5.2 operator and roof policy + DH1 TEMP3 NETFIX1 (2026-10-28)"
+ #endif
+ 
+ // ============== KONFIG ==============
+@@ -3200,7 +3204,7 @@
+   tgClient.setClient(&wifiBase);        // placeholder - wlasciwy transport ustawiamy w petli
+   tgClient.setInsecure();               // bez weryfikacji certyfikatu (jak dotychczas)
+   tgClient.setBufferSizes(16384, 2048); // wieksze bufory - handshake TLS sie miesci
+-  tgClient.setTimeout(3000);            // skrocony - szybkie fail-fast
++  tgClient.setTimeout(3);               // BSSL_TCPClient: timeout w sekundach, nie milisekundach
+   tgClient.setHandshakeTimeout(4);      // skrocony (bylo 8s)
+ #if DIAG_TLS_DEBUG
+   tgClient.setDebugLevel(4);
+@@ -4647,6 +4651,9 @@
+   // Diagnostyka czujnikow/systemu (dla panelu diagnostycznego w UI)
+   j += ",\"diag\":{";
+   j += "\"uptime_s\":";   j += String((uint32_t)(millis() / 1000UL));
++#if USE_W5500
++  j += ",\"ethernet_timeouts\":"; j += String(astroEthTimeoutCount());
++#endif
+   j += ",\"tca_addr\":";  j += String((int)g_tcaAddr);   // 
+   j += ",\"modbus_addr\":"; j += String((int)MODBUS_RELAY_ADDR);
+   j += ",\"baro\":";      j += jsonQuote(g_baroType == BARO_BMP280 ? "BMP280" : (g_baroType == BARO_BME280 ? "BME280" : "BRAK"));
+@@ -6324,14 +6331,14 @@
+ }
+ 
+ template<class Socket> struct HttpSession {
+-  Socket client;
++  AstroHttpClient<Socket> client;
+   astro_http::Request request;
+   bool used=false;
+   bool dispatching=false;
+   uint32_t acceptedStopEpoch=0;
+   void start(Socket incoming) {
+     acceptedStopEpoch=g_stopEpoch;
+-    client=incoming; client.setTimeout(1); request.reset(millis()); used=true;
++    client.attach(incoming); request.reset(millis()); used=true;
+   }
+   void close() { client.stop(); used=false; }
+   void receive() {
+@@ -6382,17 +6389,17 @@
+ #if USE_WIFI
+   if(g_wifiReady) {
+     for(auto& session:g_wifiHttp) if(!session.used) {
+-      WiFiClient incoming=wifiServer.accept(); if(incoming) session.start(incoming); break;
+-    }
+-    for(auto& session:g_wifiHttp) session.receive();
++      diagnosticStage(201); WiFiClient incoming=wifiServer.accept(); if(incoming) session.start(incoming); break;
++    }
++    for(auto& session:g_wifiHttp) { diagnosticStage(202); session.receive(); }
+   }
+ #endif
+ #if USE_W5500
+   if(g_ethReady) {
+     for(auto& session:g_ethHttp) if(!session.used) {
+-      EthernetClient incoming=ethServer.accept(); if(incoming) session.start(incoming); break;
+-    }
+-    for(auto& session:g_ethHttp) session.receive();
++      diagnosticStage(203); EthernetClient incoming=ethServer.accept(); if(incoming) session.start(incoming); break;
++    }
++    for(auto& session:g_ethHttp) { diagnosticStage(204); session.receive(); }
+   }
+ #endif
+ }
+--- przed/src/online_notifications.h
++++ NETFIX1/src/online_notifications.h
+@@ -65,7 +65,7 @@
+ #endif
+  ESP_SSLClient tls;
+  tls.setDebugLevel(0);tls.setCACert(NOTIFY_CA_PEM);tls.setX509Time((uint32_t)time(nullptr));
+- tls.setBufferSizes(16384,2048);tls.setTimeout(2000);tls.setHandshakeTimeout(4);
++ tls.setBufferSizes(16384,2048);tls.setTimeout(2);tls.setHandshakeTimeout(4);
+  NetIf order[2]={netChoose(),NET_NONE};order[1]=netOther(order[0]);bool connected=false;
+  for(unsigned i=0;i<2&&!connected;++i){
+   if(order[i]==NET_NONE)continue;

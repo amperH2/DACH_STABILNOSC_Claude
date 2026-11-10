@@ -1,0 +1,12 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const text=fs.readFileSync(path.join(__dirname,'../src/web_ui.h'),'utf8');
+new Function(text.slice(text.indexOf('<script>')+8,text.indexOf('</script>')));
+assert(text.includes("u.pathname==='/api/notifications'"));
+assert(text.includes('id="panelNotifications"'));
+assert(text.includes('commandFetch(\'/api/notifications\''));
+const render=text.slice(text.indexOf('function renderNotifications'),text.indexOf('async function refreshNotifications'));
+assert(render.includes('textContent')&&!render.includes('innerHTML'));
+for(const secret of ['PUSHOVER_APP_TOKEN','PUSHOVER_USER_KEY','HEALTHCHECKS_UUID'])assert(!text.includes(secret));
+assert(text.includes("test.disabled=!ch.compiled||!ch.enabled||!ch.configured"));
+assert(text.includes("querySelectorAll('button,input')"));
+console.log('Notification panel PASS: syntax, token transport, no API keys, text-only results and unavailable-channel gates');

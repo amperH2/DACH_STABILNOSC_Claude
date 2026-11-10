@@ -1,0 +1,191 @@
+{
+  "switches": [
+    "ROOF_MOTION_ENABLED",
+    "USE_WIFI",
+    "USE_W5500",
+    "USE_TELEGRAM",
+    "USE_MQTT",
+    "USE_OTA",
+    "USE_TASK_WDT",
+    "PARK_GUARD_ENABLED",
+    "MOUNT_LIMIT_ENABLED",
+    "MOUNT_ESTOP_BLOCKS_CLOSE",
+    "COLLISION_SENSOR_ENABLED",
+    "COLLISION_POWER_RELAY_ENABLED",
+    "MOUNT_POWER_RELAY_ENABLED",
+    "COMMS_WATCHDOG_ENABLED",
+    "COMMS_LOST_AUTOPARK",
+    "FORCE_CLOSE_ALLOW_IGNORE_PARK",
+    "ROOF_INTERLOCK_RELAYS",
+    "ROOF_BLOCK_REDUNDANT_COMMANDS",
+    "ENABLE_RG11",
+    "RG11_RAIN_WHEN_LOW",
+    "ANEMOMETER_ENABLED",
+    "WIND_FAULT_UNSAFE",
+    "MLX_FAIL_UNSAFE",
+    "ENABLE_MLX90614",
+    "ENABLE_MLX90614_2",
+    "ENABLE_DHT22",
+    "ENABLE_DS18B20",
+    "ENABLE_BH1750",
+    "ENABLE_TSL2591",
+    "ENABLE_SI1145",
+    "ENABLE_BMP280",
+    "ENABLE_BME280",
+    "RTC_ENABLED",
+    "SIM900_ENABLED",
+    "LOCAL_ALARM_ENABLED",
+    "PWM_MODULE_ENABLED",
+    "HEATER_PWM_ENABLED",
+    "LED_PWM_ENABLED",
+    "ILLUM_DO_ENABLED",
+    "EVENT_LOG_PERSISTENT",
+    "MODBUS_RELAY_LOG",
+    "RELAY_LOG",
+    "DIAG_TLS_DEBUG",
+    "DIAG_NET_TEST",
+    "DIAG_ETH_DHCP",
+    "AUX1_ENABLED",
+    "AUX2_ENABLED",
+    "AUX3_ENABLED",
+    "AUX4_ENABLED",
+    "AUX5_ENABLED",
+    "OBS_BOARD_8RO",
+    "MQTT_TLS_ENABLED",
+    "LOCAL_DO_ENABLED",
+    "DO1_ENABLED",
+    "DO2_ENABLED",
+    "DO3_ENABLED",
+    "DO4_ENABLED",
+    "DO5_ENABLED",
+    "DO6_ENABLED",
+    "DO7_ENABLED",
+    "CLOSE_CLEARANCE_CONFIRMED",
+    "PUSHOVER_ENABLED",
+    "HEARTBEAT_ENABLED",
+    "SIM7600_ENABLED",
+    "SIM7600_RS232_CONFIRMED"
+  ],
+  "parameters": [
+    "MODBUS_RELAY_ADDR",
+    "HEATER_PWM_ADDR",
+    "MODBUS_RELAY_BAUD",
+    "MODBUS_RELAY_RESPONSE_TIMEOUT_MS",
+    "MODBUS_RELAY_POLL_MS",
+    "PWM_FREQ_HZ",
+    "HEATER_MANUAL_TIMEOUT_MIN",
+    "HEATER_PWM_MAX_SENSOR_AGE_MS",
+    "ROOF_TIMEOUT_SEC",
+    "PARK_SETTLE_MS",
+    "COMMS_LOST_TIMEOUT_MS",
+    "NET_MODE_DEFAULT",
+    "PARK_ALPACA_PORT",
+    "SIM_BAUD",
+    "SMS_MAX_PER_HOUR",
+    "LED_PWM_CHANNEL",
+    "OBS_TCA_I2C_ADDR",
+    "RELAY_ACTIVE_LOW_CFG",
+    "MQTT_PORT",
+    "PUSHOVER_RETRY_SEC",
+    "PUSHOVER_EXPIRE_SEC",
+    "HEARTBEAT_INTERVAL_SEC"
+  ],
+  "ranges": {
+    "MODBUS_RELAY_ADDR": [
+      1,
+      255
+    ],
+    "HEATER_PWM_ADDR": [
+      1,
+      255
+    ],
+    "MODBUS_RELAY_RESPONSE_TIMEOUT_MS": [
+      20,
+      2000
+    ],
+    "MODBUS_RELAY_POLL_MS": [
+      100,
+      60000
+    ],
+    "PWM_FREQ_HZ": [
+      1,
+      200000
+    ],
+    "HEATER_MANUAL_TIMEOUT_MIN": [
+      1,
+      240
+    ],
+    "HEATER_PWM_MAX_SENSOR_AGE_MS": [
+      1000,
+      60000
+    ],
+    "ROOF_TIMEOUT_SEC": [
+      5,
+      600
+    ],
+    "PARK_SETTLE_MS": [
+      0,
+      60000
+    ],
+    "COMMS_LOST_TIMEOUT_MS": [
+      10000,
+      3600000
+    ],
+    "NET_MODE_DEFAULT": [
+      0,
+      2
+    ],
+    "PARK_ALPACA_PORT": [
+      1,
+      65535
+    ],
+    "MQTT_PORT": [
+      1,
+      65535
+    ],
+    "SMS_MAX_PER_HOUR": [
+      0,
+      60
+    ],
+    "PUSHOVER_RETRY_SEC": [
+      30,
+      3600
+    ],
+    "PUSHOVER_EXPIRE_SEC": [
+      30,
+      10800
+    ],
+    "HEARTBEAT_INTERVAL_SEC": [
+      60,
+      3600
+    ]
+  },
+  "choices": {
+    "MODBUS_RELAY_BAUD": [
+      4800,
+      9600,
+      19200,
+      38400,
+      57600,
+      115200,
+      128000,
+      256000
+    ],
+    "SIM_BAUD": [
+      9600,
+      19200,
+      38400,
+      57600,
+      115200
+    ],
+    "LED_PWM_CHANNEL": [
+      4
+    ],
+    "OBS_TCA_I2C_ADDR": [
+      32
+    ],
+    "RELAY_ACTIVE_LOW_CFG": [
+      0
+    ]
+  }
+}
